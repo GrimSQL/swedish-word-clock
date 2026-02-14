@@ -11,7 +11,7 @@ const path = require('path');
 const COLS = 11;
 const ROWS = 10;
 const GRID_LETTERS = [
-  'K','L','O','C','K','A','N','D','A','Ä','R',
+  'K','L','O','C','K','A','N','V','H','Ä','R',
   'S','F','E','M','I','S','T','I','O','N','A',
   'T','J','U','G','O','M','I','E','S','N','D',
   'K','V','A','R','T','B','Ö','V','E','R','G',

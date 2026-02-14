@@ -32,7 +32,7 @@ Swedish uses a "half-hour" system where times from `:25` onward reference the **
 ### Grid Layout
 
 ```
-K L O C K A N d a Ä R        KLOCKAN ... ÄR
+K L O C K A N v h Ä R        KLOCKAN ... ÄR
 s F E M i s T I O n a        FEM(min) TIO(min)
 T J U G O m i e s n d        TJUGO
 K V A R T b Ö V E R g        KVART ÖVER
