@@ -155,8 +155,8 @@ function generateGridSVG(sizeKey) {
 // STENCIL SVG GENERATOR (Variant B)
 // ============================================================
 
-function generateStencilSVG() {
-  const s = SIZES.M;
+function generateStencilSVG(sizeKey = 'L') {
+  const s = SIZES[sizeKey];
   const gridW = COLS * s.pitch;
   const gridH = ROWS * s.pitch;
   const panelW = gridW + 2 * FRAME_BORDER;
@@ -421,10 +421,10 @@ for (const sizeKey of ['S', 'M', 'L']) {
   console.log(`✓ ${filename}  (${panelW} × ${panelH} mm) — ${SIZES[sizeKey].label}`);
 }
 
-// Variant B: Stencil SVG (M only)
+// Variant B: Stencil SVG (L size for laser cutting)
 {
-  const filename = 'wordclock-stencil-M.svg';
-  const { svg, panelW, panelH } = generateStencilSVG();
+  const filename = 'wordclock-stencil-L.svg';
+  const { svg, panelW, panelH } = generateStencilSVG('L');
   const filepath = path.join(outDir, filename);
   fs.writeFileSync(filepath, svg, 'utf-8');
   console.log(`✓ ${filename}  (${panelW} × ${panelH} mm) — Stencil variant`);
