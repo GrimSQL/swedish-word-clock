@@ -564,10 +564,94 @@
     .time-input { font-size: 1.8rem; }
     .modal { padding: 24px 20px; }
   }
+
+  /* ============ AUTH OVERLAY ============ */
+  .auth-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.4s;
+  }
+  .auth-overlay.hidden { opacity: 0; pointer-events: none; }
+  .auth-box {
+    background: var(--frame-hi);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 40px 36px;
+    max-width: 420px; width: 90%;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .auth-box h2 { color: var(--ui-accent); margin: 0 0 8px; font-size: 1.3rem; }
+  .auth-box p { color: var(--ui-mid); font-size: 0.8rem; margin: 0 0 20px; line-height: 1.5; }
+  .auth-input {
+    width: 100%; box-sizing: border-box;
+    padding: 12px 14px; margin-bottom: 8px;
+    background: var(--bg); color: var(--ui-accent);
+    border: 1px solid var(--border); border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;
+    outline: none;
+  }
+  .auth-input:focus { border-color: var(--ui-accent); }
+  .auth-input.error { border-color: var(--manual); }
+  .auth-reqs {
+    text-align: left; margin: 0 0 16px; padding: 0;
+    list-style: none; font-size: 0.75rem; color: var(--ui-dim);
+  }
+  .auth-reqs li { padding: 2px 0; }
+  .auth-reqs li::before { content: '✗ '; color: var(--manual); }
+  .auth-reqs li.met::before { content: '✓ '; color: #4a4; }
+  .auth-reqs li.met { color: var(--ui-mid); }
+  .auth-btn {
+    width: 100%; padding: 12px;
+    background: var(--ui-accent); color: var(--bg);
+    border: none; border-radius: 6px; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem; font-weight: 700;
+    transition: opacity 0.2s;
+  }
+  .auth-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .auth-btn:not(:disabled):hover { opacity: 0.85; }
+  .auth-msg {
+    font-size: 0.8rem; margin-top: 12px; min-height: 1.2em;
+    color: var(--manual);
+  }
+  .auth-msg.ok { color: #4a4; }
+  .auth-link {
+    color: var(--ui-dim); font-size: 0.75rem;
+    cursor: pointer; margin-top: 10px; display: inline-block;
+  }
+  .auth-link:hover { color: var(--ui-accent); }
+  #btnPassword {
+    background: none; border: 1px solid var(--border); color: var(--ui-dim);
+    padding: 6px 12px; border-radius: 4px; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+  }
+  #btnPassword:hover { color: var(--ui-accent); border-color: var(--ui-accent); }
 </style>
 </head>
 <body>
 
+<!-- AUTH OVERLAY -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-box">
+    <h2 id="authTitle">Skapa lösenord</h2>
+    <p id="authDesc">Välj ett starkt lösenord för att skydda din ordklocka.</p>
+    <input type="password" class="auth-input" id="authPass" placeholder="Lösenord" autocomplete="off">
+    <input type="password" class="auth-input" id="authPass2" placeholder="Bekräfta lösenord" autocomplete="off">
+    <ul class="auth-reqs" id="authReqs">
+      <li id="reqLen">Minst 20 tecken</li>
+      <li id="reqUpper">Minst en versal (A-Z)</li>
+      <li id="reqLower">Minst en gemen (a-z)</li>
+      <li id="reqDigit">Minst en siffra (0-9)</li>
+      <li id="reqSpecial">Minst ett specialtecken (!@#$%^&* etc.)</li>
+    </ul>
+    <button class="auth-btn" id="authBtn" disabled>SKAPA LÖSENORD</button>
+    <div class="auth-msg" id="authMsg"></div>
+  </div>
+</div>
+
+<div id="appContent" style="display:none">
 <h1>Svensk Ordklocka</h1>
 
 <div class="clock-frame">
@@ -604,7 +688,12 @@
     <div class="theme-swatch" data-t="minimal" title="Minimal"></div>
     <div class="theme-swatch" data-t="rosegold" title="Rose Gold"></div>
   </div>
+  <div style="text-align:center; margin-top:10px;">
+    <button id="btnPassword">BYT LÖSENORD</button>
+    <button id="btnLogout" style="background:none;border:1px solid var(--border);color:var(--ui-dim);padding:6px 12px;border-radius:4px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:0.7rem;margin-left:6px;">LOGGA UT</button>
+  </div>
 </div>
+</div><!-- /appContent -->
 
 <!-- DOCS MODAL -->
 <div class="modal-overlay" id="docsOverlay">
@@ -621,11 +710,11 @@
         ordpositioner, gemener &auml;r utfyllnadsbokst&auml;ver.
       </p>
       <div class="grid-preview">
-        <span class="hl">K L O C K A N</span> d a <span class="hl">&Auml; R</span><br>
+        <span class="hl">K L O C K A N</span> v h <span class="hl">&Auml; R</span><br>
         s <span class="hl">F E M</span> i s <span class="hl">T I O</span> n a<br>
         <span class="hl">T J U G O</span> m i e s n d<br>
         <span class="hl">K V A R T</span> b <span class="hl">&Ouml; V E R</span> g<br>
-        l <span class="hl">I</span> d k <span class="hl">H A L V</span> &ouml; t p<br>
+        l <span class="hl">I</span> a h <span class="hl">H A L V</span> &ouml; t p<br>
         <span class="hl">E T T</span> r <span class="hl">T V &Aring;</span> l s n d<br>
         <span class="hl">T R E</span> n <span class="hl">F Y R A</span> o s t<br>
         <span class="hl">F E M</span> b <span class="hl">S E X</span> o <span class="hl">S J U</span><br>
@@ -719,6 +808,147 @@
 </div>
 
 <script>
+// ============================================================
+// AUTHENTICATION SYSTEM (PBKDF2 + Web Crypto API)
+// ============================================================
+const AUTH = {
+  SALT_KEY: 'wc_auth_salt',
+  HASH_KEY: 'wc_auth_hash',
+  SESSION_KEY: 'wc_auth_session',
+  ITERATIONS: 100000,
+
+  async deriveKey(password, salt) {
+    const enc = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: this.ITERATIONS, hash: 'SHA-256' }, keyMaterial, 256);
+    return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2,'0')).join('');
+  },
+
+  async setPassword(password) {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const hash = await this.deriveKey(password, salt);
+    localStorage.setItem(this.SALT_KEY, Array.from(salt).join(','));
+    localStorage.setItem(this.HASH_KEY, hash);
+    sessionStorage.setItem(this.SESSION_KEY, '1');
+  },
+
+  async checkPassword(password) {
+    const saltStr = localStorage.getItem(this.SALT_KEY);
+    if (!saltStr) return false;
+    const salt = new Uint8Array(saltStr.split(',').map(Number));
+    const hash = await this.deriveKey(password, salt);
+    return hash === localStorage.getItem(this.HASH_KEY);
+  },
+
+  hasPassword() { return !!localStorage.getItem(this.HASH_KEY); },
+  isLoggedIn() { return sessionStorage.getItem(this.SESSION_KEY) === '1'; },
+  logout() { sessionStorage.removeItem(this.SESSION_KEY); },
+
+  validate(pw) {
+    return {
+      len: pw.length >= 20,
+      upper: /[A-ZÅÄÖ]/.test(pw),
+      lower: /[a-zåäö]/.test(pw),
+      digit: /\d/.test(pw),
+      special: /[^A-Za-zÅÄÖåäö0-9]/.test(pw),
+      get ok() { return this.len && this.upper && this.lower && this.digit && this.special; }
+    };
+  }
+};
+
+(function initAuth() {
+  const overlay = document.getElementById('authOverlay');
+  const appContent = document.getElementById('appContent');
+  const title = document.getElementById('authTitle');
+  const desc = document.getElementById('authDesc');
+  const pass1 = document.getElementById('authPass');
+  const pass2 = document.getElementById('authPass2');
+  const reqs = document.getElementById('authReqs');
+  const btn = document.getElementById('authBtn');
+  const msg = document.getElementById('authMsg');
+
+  let mode = AUTH.hasPassword() ? 'login' : 'setup'; // setup | login | change
+
+  function showApp() {
+    overlay.classList.add('hidden');
+    appContent.style.display = '';
+    setTimeout(() => overlay.style.display = 'none', 400);
+  }
+
+  function showAuth(m) {
+    mode = m;
+    overlay.style.display = '';
+    overlay.classList.remove('hidden');
+    appContent.style.display = 'none';
+    pass1.value = ''; pass2.value = '';
+    msg.textContent = ''; msg.className = 'auth-msg';
+    btn.disabled = true;
+    updateUI();
+  }
+
+  function updateUI() {
+    if (mode === 'login') {
+      title.textContent = 'Logga in';
+      desc.textContent = 'Ange ditt lösenord för att fortsätta.';
+      pass2.style.display = 'none';
+      reqs.style.display = 'none';
+      btn.textContent = 'LOGGA IN';
+      btn.disabled = pass1.value.length === 0;
+    } else {
+      title.textContent = mode === 'setup' ? 'Skapa lösenord' : 'Byt lösenord';
+      desc.textContent = mode === 'setup'
+        ? 'Välj ett starkt lösenord för att skydda din ordklocka.'
+        : 'Ange ett nytt lösenord.';
+      pass2.style.display = '';
+      reqs.style.display = '';
+      btn.textContent = mode === 'setup' ? 'SKAPA LÖSENORD' : 'SPARA NYTT LÖSENORD';
+      const v = AUTH.validate(pass1.value);
+      document.getElementById('reqLen').className = v.len ? 'met' : '';
+      document.getElementById('reqUpper').className = v.upper ? 'met' : '';
+      document.getElementById('reqLower').className = v.lower ? 'met' : '';
+      document.getElementById('reqDigit').className = v.digit ? 'met' : '';
+      document.getElementById('reqSpecial').className = v.special ? 'met' : '';
+      btn.disabled = !(v.ok && pass1.value === pass2.value && pass2.value.length > 0);
+    }
+  }
+
+  pass1.addEventListener('input', updateUI);
+  pass2.addEventListener('input', updateUI);
+
+  [pass1, pass2].forEach(el => el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !btn.disabled) btn.click();
+  }));
+
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    if (mode === 'login') {
+      const ok = await AUTH.checkPassword(pass1.value);
+      if (ok) {
+        sessionStorage.setItem(AUTH.SESSION_KEY, '1');
+        msg.textContent = ''; showApp();
+      } else {
+        msg.textContent = 'Fel lösenord.'; msg.className = 'auth-msg';
+        pass1.classList.add('error');
+        setTimeout(() => pass1.classList.remove('error'), 1500);
+        btn.disabled = false;
+      }
+    } else {
+      await AUTH.setPassword(pass1.value);
+      msg.textContent = mode === 'setup' ? 'Lösenord skapat!' : 'Lösenord ändrat!';
+      msg.className = 'auth-msg ok';
+      setTimeout(showApp, 800);
+    }
+  });
+
+  // Password change button (in main app)
+  document.getElementById('btnPassword').addEventListener('click', () => showAuth('change'));
+  document.getElementById('btnLogout').addEventListener('click', () => { AUTH.logout(); showAuth('login'); });
+
+  // Check session
+  if (AUTH.isLoggedIn()) { showApp(); }
+  else { updateUI(); pass1.focus(); }
+})();
+
 // ============================================================
 // GRID & WORD DEFINITIONS
 // ============================================================
