@@ -34,9 +34,9 @@ Swedish uses a "half-hour" system where times from `:25` onward reference the **
 ```
 K L O C K A N d a A R        KLOCKAN ... AR
 s F E M i s T I O n a        FEM(min) TIO(min)
+T J U G O m i e s n d        TJUGO
 K V A R T b O V E R g        KVART OVER
-T J U G O m I e s n d        TJUGO I
-l i d k H A L V o t p        HALV
+l I d k H A L V o t p        I HALV
 E T T r T V A l s n d        ETT TVA
 T R E n F Y R A o s t        TRE FYRA
 F E M b S E X o S J U        FEM(hour) SEX SJU
@@ -44,7 +44,7 @@ A T T A m N I O d e k        ATTA NIO
 E L V A T O L V T I O        ELVA TOLV TIO(hour)
 ```
 
-> `FEM` and `TIO` appear twice each - once as minute words (row 1) and once as hour words (rows 7/9).
+> `FEM` and `TIO` appear twice each — once as minute words (row 1) and once as hour words (rows 7/9).
 
 ### Corner Dots
 
