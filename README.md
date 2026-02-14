@@ -36,7 +36,7 @@ Swedish uses a "half-hour" system where times from `:25` onward reference the **
 S <b>F E M</b> I S <b>T I O</b> N A         FEM(min) TIO(min)
 <b>T J U G O</b> M I E S N D         TJUGO
 <b>K V A R T</b> B <b>Ö V E R</b> G         KVART ÖVER
-L <b>I</b> D K <b>H A L V</b> Ö T P         I HALV
+L <b>I</b> A H <b>H A L V</b> Ö T P         I HALV
 <b>E T T</b> R <b>T V Å</b> L S N D         ETT TVÅ
 <b>T R E</b> N <b>F Y R A</b> O S T         TRE FYRA
 <b>F E M</b> B <b>S E X</b> O <b>S J U</b>         FEM(hour) SEX SJU
