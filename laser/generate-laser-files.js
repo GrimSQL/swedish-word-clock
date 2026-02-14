@@ -165,12 +165,13 @@ function generateStencilSVG(sizeKey = 'L') {
   let svg = svgHeader(panelW, panelH);
 
   svg += `  <!-- INSTRUCTIONS:
-       1. Install font "Allerta Stencil" from Google Fonts (free)
-       2. Open this file in Inkscape
-       3. Select All (Ctrl+A)
-       4. Path > Object to Path (Shift+Ctrl+C)
-       5. Save as Plain SVG or export as DXF
-       The stencil font has built-in bridges for enclosed letters (A, O, B, D, etc.)
+       1. Open this file in Inkscape
+       2. Select All (Ctrl+A)
+       3. Path > Object to Path (Shift+Ctrl+C)
+       4. Save as Plain SVG or export as DXF
+       Uses Arial Bold — full letter cutouts without stencil bridges.
+       Inner pieces of A, O, Ö, Å, D, B, P, R will fall out during cutting.
+       Save them and glue onto the diffuser sheet.
   -->\n\n`;
 
   // Layer: Cut lines
@@ -212,7 +213,7 @@ function generateStencilSVG(sizeKey = 'L') {
       const idx = row * COLS + col;
       const cx = FRAME_BORDER + col * s.pitch + s.pitch / 2;
       const cy = FRAME_BORDER + row * s.pitch + s.pitch / 2;
-      svg += `  <text x="${cx}" y="${cy}" font-family="Allerta Stencil, sans-serif" font-weight="400" ` +
+      svg += `  <text x="${cx}" y="${cy}" font-family="Arial, Helvetica, sans-serif" font-weight="700" ` +
         `font-size="${fontSize}" fill="${CUT_COLOR}" stroke="none" ` +
         `text-anchor="middle" dominant-baseline="central">${GRID_LETTERS[idx]}</text>\n`;
     }
