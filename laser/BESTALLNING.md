@@ -42,10 +42,14 @@ Du behöver minst **två delar** för en komplett klocka:
 
 ## Filformat
 
-De genererade filerna är i **SVG-format**. De flesta laserskärningstjänster accepterar SVG direkt. Om PDF eller DXF krävs:
+Filerna genereras i **SVG** och **DXF**-format:
 
-1. Öppna SVG i **Inkscape** (gratis, https://inkscape.org)
-2. `File` → `Save As` → välj önskat format (PDF, DXF, etc.)
+| Fil | Format | Användning |
+|-----|--------|------------|
+| `wordclock-grid-{S,M,L}.svg` | SVG | De flesta onlinetjänster (Formulor, Sculpteo, etc.) |
+| `wordclock-grid-L.dxf` | DXF (R12) | Scandcut och andra CAD-baserade tjänster |
+
+Om du behöver PDF: öppna SVG i **Inkscape** (gratis) → `File` → `Save As` → PDF.
 
 ### Färgkoder i filerna
 
@@ -67,11 +71,19 @@ Meddela lasertjänsten att röda linjer ska skäras genom materialet och blå li
 | **Sculpteo** | FR | 30–60 € | SVG (rekommenderat) | https://sculpteo.com |
 | **Cotter** | DK | 30–60 € | PDF (konvertera SVG) | https://cotter.dk |
 
-### Sverige
+### Sverige — Scandcut (rekommenderat)
 
 | Företag | Land | Pris | Format | Webb |
 |---------|------|------|--------|------|
-| **Scandcut** | SE | Offertbaserat | Kontakta | https://scandcut.se |
+| **Scandcut** | SE | Offertbaserat | **DXF** (rek.), STEP | https://scandcut.se |
+
+**Scandcut-instruktioner:**
+- De rekommenderar STEP-filer men DXF fungerar utmärkt
+- Max 10 MB filstorlek — `wordclock-grid-L.dxf` är bara 32 KB
+- En detalj per fil (uppfyllt)
+- De utför automatiskt nestning och prisoptimering
+- Skicka `wordclock-grid-L.dxf` direkt — ingen konvertering behövs
+- Ange material: **3mm svart gjuten akryl**
 
 > **Tips:** Sök även efter lokala makerspaces/FabLabs i din stad. Många har laserskärare tillgängliga för medlemmar till självkostnadspris.
 

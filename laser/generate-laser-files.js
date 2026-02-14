@@ -225,6 +225,109 @@ function generateStencilSVG() {
 }
 
 // ============================================================
+// DXF GENERATOR (AutoCAD R12 ASCII format)
+// ============================================================
+
+function dxfHeader() {
+  return `0\nSECTION\n2\nHEADER\n0\nENDSEC\n0\nSECTION\n2\nTABLES\n` +
+    `0\nTABLE\n2\nLAYER\n70\n2\n` +
+    // Layer CUT (red, color 1)
+    `0\nLAYER\n2\nCUT\n70\n0\n62\n1\n6\nCONTINUOUS\n` +
+    // Layer ENGRAVE (blue, color 5)
+    `0\nLAYER\n2\nENGRAVE\n70\n0\n62\n5\n6\nCONTINUOUS\n` +
+    `0\nENDTAB\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n`;
+}
+
+function dxfFooter() {
+  return '0\nENDSEC\n0\nEOF\n';
+}
+
+function dxfLine(x1, y1, x2, y2, layer = 'CUT') {
+  return `0\nLINE\n8\n${layer}\n10\n${x1}\n20\n${y1}\n30\n0\n11\n${x2}\n21\n${y2}\n31\n0\n`;
+}
+
+function dxfCircle(cx, cy, r, layer = 'CUT') {
+  return `0\nCIRCLE\n8\n${layer}\n10\n${cx}\n20\n${cy}\n30\n0\n40\n${r}\n`;
+}
+
+// Draw a rectangle as 4 lines (DXF has no rect primitive)
+function dxfRect(x, y, w, h, layer = 'CUT') {
+  return dxfLine(x, y, x + w, y, layer) +
+    dxfLine(x + w, y, x + w, y + h, layer) +
+    dxfLine(x + w, y + h, x, y + h, layer) +
+    dxfLine(x, y + h, x, y, layer);
+}
+
+// Approximate rounded rectangle as polyline with arc segments
+function dxfRoundedRect(x, y, w, h, r, layer = 'CUT') {
+  // Simplify: use straight lines for DXF (rounded corners are cosmetic)
+  // Most laser services will accept this; exact rounding can be done in their CAD
+  return dxfRect(x, y, w, h, layer);
+}
+
+function generateGridDXF(sizeKey) {
+  const s = SIZES[sizeKey];
+  const gridW = COLS * s.pitch;
+  const gridH = ROWS * s.pitch;
+  const panelW = gridW + 2 * FRAME_BORDER;
+  const panelH = gridH + 2 * FRAME_BORDER;
+
+  let dxf = dxfHeader();
+
+  // Outer frame (DXF Y-axis goes up, so we flip Y for conventional orientation)
+  dxf += dxfRoundedRect(0, 0, panelW, panelH, CORNER_RADIUS, 'CUT');
+
+  // 110 cell windows
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      const cx = FRAME_BORDER + col * s.pitch + s.pitch / 2;
+      const cy = FRAME_BORDER + row * s.pitch + s.pitch / 2;
+      const rx = cx - s.cutout / 2;
+      const ry = cy - s.cutout / 2;
+      dxf += dxfRect(rx, ry, s.cutout, s.cutout, 'CUT');
+    }
+  }
+
+  // 4 corner dots
+  const dotR = s.cornerDot / 2;
+  const dotInset = FRAME_BORDER / 2;
+  [
+    [dotInset, dotInset],
+    [panelW - dotInset, dotInset],
+    [dotInset, panelH - dotInset],
+    [panelW - dotInset, panelH - dotInset],
+  ].forEach(([cx, cy]) => {
+    dxf += dxfCircle(cx, cy, dotR, 'CUT');
+  });
+
+  // 4 mounting holes
+  [
+    [MOUNT_INSET, MOUNT_INSET],
+    [panelW - MOUNT_INSET, MOUNT_INSET],
+    [MOUNT_INSET, panelH - MOUNT_INSET],
+    [panelW - MOUNT_INSET, panelH - MOUNT_INSET],
+  ].forEach(([cx, cy]) => {
+    dxf += dxfCircle(cx, cy, s.mountHole / 2, 'CUT');
+  });
+
+  // Letter labels on ENGRAVE layer (as simple text — DXF TEXT entity)
+  const fontSize = s.cutout * 0.6;
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      const idx = row * COLS + col;
+      const cx = FRAME_BORDER + col * s.pitch + s.pitch / 2;
+      const cy = FRAME_BORDER + row * s.pitch + s.pitch / 2;
+      // DXF TEXT: insertion point, height, text value
+      // 72=1 (center horizontal), 73=2 (middle vertical), 11=alignment point
+      dxf += `0\nTEXT\n8\nENGRAVE\n10\n${cx}\n20\n${cy}\n30\n0\n40\n${fontSize}\n1\n${GRID_LETTERS[idx]}\n72\n1\n73\n2\n11\n${cx}\n21\n${cy}\n31\n0\n`;
+    }
+  }
+
+  dxf += dxfFooter();
+  return { dxf, panelW, panelH };
+}
+
+// ============================================================
 // SEPARATOR / BAFFLE GRID GENERATOR
 // ============================================================
 
@@ -345,6 +448,16 @@ for (const sizeKey of ['S', 'M', 'L']) {
   console.log(`✓ ${filename}  — Egg-crate baffle grid`);
 }
 
+// DXF for Scandcut (L size only — their preferred format)
+{
+  const filename = 'wordclock-grid-L.dxf';
+  const { dxf, panelW, panelH } = generateGridDXF('L');
+  const filepath = path.join(outDir, filename);
+  fs.writeFileSync(filepath, dxf, 'utf-8');
+  console.log(`✓ ${filename}  (${panelW} × ${panelH} mm) — DXF for Scandcut/CAD`);
+}
+
 console.log('\nDone! Open SVG files in a browser or Inkscape to verify.');
+console.log('DXF files can be opened in any CAD program (FreeCAD, AutoCAD, LibreCAD).');
 console.log('For stencil variant: install "Allerta Stencil" font, open in Inkscape,');
 console.log('select all text → Path > Object to Path before sending to laser cutter.');

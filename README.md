@@ -8,7 +8,7 @@ An interactive browser-based simulator for a Swedish word clock (QlockTwo-style)
 
 ## How It Works
 
-The clock displays the current time in Swedish using illuminated words on an 11x10 letter grid. Time is shown in 5-minute intervals with the prefix **KLOCKAN AR** ("the clock is"), and four corner dots indicate extra minutes within each interval.
+The clock displays the current time in Swedish using illuminated words on an 11×10 letter grid. Time is shown in 5-minute intervals with the prefix **KLOCKAN ÄR** ("the clock is"), and four corner dots indicate extra minutes within each interval.
 
 ### Swedish Time Logic
 
@@ -16,14 +16,14 @@ Swedish uses a "half-hour" system where times from `:25` onward reference the **
 
 | Time  | Display                         |
 |-------|---------------------------------|
-| 16:00 | KLOCKAN AR **FYRA**             |
-| 16:05 | **FEM OVER** FYRA               |
-| 16:10 | **TIO OVER** FYRA               |
-| 16:15 | **KVART OVER** FYRA             |
-| 16:20 | **TJUGO OVER** FYRA             |
+| 16:00 | KLOCKAN ÄR **FYRA**             |
+| 16:05 | **FEM ÖVER** FYRA               |
+| 16:10 | **TIO ÖVER** FYRA               |
+| 16:15 | **KVART ÖVER** FYRA             |
+| 16:20 | **TJUGO ÖVER** FYRA             |
 | 16:25 | **FEM I HALV** FEM              |
 | 16:30 | **HALV** FEM                    |
-| 16:35 | **FEM OVER HALV** FEM           |
+| 16:35 | **FEM ÖVER HALV** FEM           |
 | 16:40 | **TJUGO I** FEM                 |
 | 16:45 | **KVART I** FEM                 |
 | 16:50 | **TIO I** FEM                   |
@@ -32,15 +32,15 @@ Swedish uses a "half-hour" system where times from `:25` onward reference the **
 ### Grid Layout
 
 ```
-K L O C K A N d a A R        KLOCKAN ... AR
+K L O C K A N d a Ä R        KLOCKAN ... ÄR
 s F E M i s T I O n a        FEM(min) TIO(min)
 T J U G O m i e s n d        TJUGO
-K V A R T b O V E R g        KVART OVER
-l I d k H A L V o t p        I HALV
-E T T r T V A l s n d        ETT TVA
+K V A R T b Ö V E R g        KVART ÖVER
+l I d k H A L V ö t p        I HALV
+E T T r T V Å l s n d        ETT TVÅ
 T R E n F Y R A o s t        TRE FYRA
 F E M b S E X o S J U        FEM(hour) SEX SJU
-A T T A m N I O d e k        ATTA NIO
+Å T T A m N I O d e k        ÅTTA NIO
 E L V A T O L V T I O        ELVA TOLV TIO(hour)
 ```
 
