@@ -31,18 +31,20 @@ Swedish uses a "half-hour" system where times from `:25` onward reference the **
 
 ### Grid Layout
 
-**K L O C K A N** V H **Ä R** · KLOCKAN ÄR
-S **F E M** I S **T I O** N A · FEM(min) TIO(min)
-**T J U G O** M I E S N D · TJUGO
-**K V A R T** B **Ö V E R** G · KVART ÖVER
-L **I** D K **H A L V** Ö T P · I HALV
-**E T T** R **T V Å** L S N D · ETT TVÅ
-**T R E** N **F Y R A** O S T · TRE FYRA
-**F E M** B **S E X** O **S J U** · FEM(hour) SEX SJU
-**Å T T A** M **N I O** D E K · ÅTTA NIO
-**E L V A T O L V T I O** · ELVA TOLV TIO(hour)
+<pre>
+<b>K L O C K A N</b> V H <b>Ä R</b>         KLOCKAN ÄR
+S <b>F E M</b> I S <b>T I O</b> N A         FEM(min) TIO(min)
+<b>T J U G O</b> M I E S N D         TJUGO
+<b>K V A R T</b> B <b>Ö V E R</b> G         KVART ÖVER
+L <b>I</b> D K <b>H A L V</b> Ö T P         I HALV
+<b>E T T</b> R <b>T V Å</b> L S N D         ETT TVÅ
+<b>T R E</b> N <b>F Y R A</b> O S T         TRE FYRA
+<b>F E M</b> B <b>S E X</b> O <b>S J U</b>         FEM(hour) SEX SJU
+<b>Å T T A</b> M <b>N I O</b> D E K         ÅTTA NIO
+<b>E L V A T O L V T I O</b>         ELVA TOLV TIO(hour)
+</pre>
 
-> `FEM` and `TIO` appear twice each — once as minute words (row 1) and once as hour words (rows 7/9). Bold letters are active; non-bold are filler.
+> `FEM` and `TIO` appear twice each — once as minute words (row 1) and once as hour words (rows 7/9). **Bold** = active letters, normal = filler.
 
 ### Corner Dots
 
