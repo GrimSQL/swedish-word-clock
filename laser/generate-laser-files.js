@@ -310,18 +310,9 @@ function generateGridDXF(sizeKey) {
     dxf += dxfCircle(cx, cy, s.mountHole / 2, 'CUT');
   });
 
-  // Letter labels on ENGRAVE layer (as simple text — DXF TEXT entity)
-  const fontSize = s.cutout * 0.6;
-  for (let row = 0; row < ROWS; row++) {
-    for (let col = 0; col < COLS; col++) {
-      const idx = row * COLS + col;
-      const cx = FRAME_BORDER + col * s.pitch + s.pitch / 2;
-      const cy = FRAME_BORDER + row * s.pitch + s.pitch / 2;
-      // DXF TEXT: insertion point, height, text value
-      // 72=1 (center horizontal), 73=2 (middle vertical), 11=alignment point
-      dxf += `0\nTEXT\n8\nENGRAVE\n10\n${cx}\n20\n${cy}\n30\n0\n40\n${fontSize}\n1\n${GRID_LETTERS[idx]}\n72\n1\n73\n2\n11\n${cx}\n21\n${cy}\n31\n0\n`;
-    }
-  }
+  // NOTE: No text entities in DXF — laser cutting services often reject them
+  // because fonts are unavailable on their systems. Letter labels are only
+  // included in the SVG files (engrave layer) for reference.
 
   dxf += dxfFooter();
   return { dxf, panelW, panelH };
