@@ -31,20 +31,18 @@ Swedish uses a "half-hour" system where times from `:25` onward reference the **
 
 ### Grid Layout
 
-```
-K L O C K A N v h Ä R        KLOCKAN ... ÄR
-s F E M i s T I O n a        FEM(min) TIO(min)
-T J U G O m i e s n d        TJUGO
-K V A R T b Ö V E R g        KVART ÖVER
-l I d k H A L V ö t p        I HALV
-E T T r T V Å l s n d        ETT TVÅ
-T R E n F Y R A o s t        TRE FYRA
-F E M b S E X o S J U        FEM(hour) SEX SJU
-Å T T A m N I O d e k        ÅTTA NIO
-E L V A T O L V T I O        ELVA TOLV TIO(hour)
-```
+**K L O C K A N** V H **Ä R** · KLOCKAN ÄR
+S **F E M** I S **T I O** N A · FEM(min) TIO(min)
+**T J U G O** M I E S N D · TJUGO
+**K V A R T** B **Ö V E R** G · KVART ÖVER
+L **I** D K **H A L V** Ö T P · I HALV
+**E T T** R **T V Å** L S N D · ETT TVÅ
+**T R E** N **F Y R A** O S T · TRE FYRA
+**F E M** B **S E X** O **S J U** · FEM(hour) SEX SJU
+**Å T T A** M **N I O** D E K · ÅTTA NIO
+**E L V A T O L V T I O** · ELVA TOLV TIO(hour)
 
-> `FEM` and `TIO` appear twice each — once as minute words (row 1) and once as hour words (rows 7/9).
+> `FEM` and `TIO` appear twice each — once as minute words (row 1) and once as hour words (rows 7/9). Bold letters are active; non-bold are filler.
 
 ### Corner Dots
 
