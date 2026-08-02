@@ -100,8 +100,8 @@ Layout: `out/backplate_layout.svg`.
 | M3 självgängande | 4 st 8–10 mm (bakplatta → skalets bossar) |
 | Väggskruv | 1 st, huvud ≤ 8 mm (nyckelhålet) |
 
-## Skillnad mot `laser/PRINTA-MINI` (vårt egna bygge)
+## Äldre byggvarianter
 
-Det egna 18 mm-bygget (stencil-front, 110 klippta LEDs) ligger kvar som
-alternativ. Den här varianten är enklare att montera och har färdig
-firmware-bas, men kräver AMS + transparent filament + 74/m-strip.
+Tidigare spår (laserskurna S/M/L-fronter, 3×3-kaklad L-print, egna 18 mm
+mini-varianter med stencil-/AMS-/fönsterfront) är borttagna ur trädet men
+finns kvar i git-historiken (commiten före städningen).

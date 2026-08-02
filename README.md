@@ -69,30 +69,21 @@ Four LEDs in the corners show minutes within each 5-minute block, just like a re
 - **Built-in docs** — click DOCS for full reference on layout, time logic, and hardware specs
 - **Single file** — zero dependencies, works offline, just open `index.html`
 
-## Hardware Specs (Physical Build)
+## Physical Build — `johniak-sv/`
 
-| Component       | Details                                      |
-|-----------------|----------------------------------------------|
-| LEDs            | 110x WS2812B (grid) + 4 corner dots = 114   |
-| MCU             | ESP32 (WiFi for NTP time sync)               |
-| Front panel     | 11x10 laser-cut faceplate, ~400x360 mm       |
-| Cell size       | ~35x35 mm per letter                         |
-| Diffuser        | Frosted acrylic or parchment paper           |
-| LED pitch       | WS2812B strip at 30 or 60 LEDs/m             |
-| Power           | 5V 3A power supply                           |
+The physical clock is a Swedish remix of [johniak/word-clock](https://github.com/johniak/word-clock) using **this repo's exact 11×10 letter grid** — cross-checked against the simulator's `GRID_LETTERS` on every generation, so the printed front and the simulator can never diverge.
 
-### johniak-sv — Swedish remix of johniak's Word Clock (recommended build)
+| Component   | Details                                                        |
+|-------------|----------------------------------------------------------------|
+| Shell       | 3D-printed, 187×179 mm, letters printed in place (AMS: black + transparent) |
+| LEDs        | 110× WS2812B — **74 LEDs/m strip**, 10 uncut rows of 11 (13.51 mm pitch) |
+| Back plate  | 3D-printed: ESP32 bay, keyhole wall-hanger, alignment pegs, cable channel |
+| MCU         | ESP32 DevKit v1 (WiFi/NTP), firmware = johniak's + Swedish patch |
+| Power       | 5V 3A                                                          |
 
-`johniak-sv/` is a Swedish remix of [johniak/word-clock](https://github.com/johniak/word-clock) using **this repo's exact 11×10 letter grid** (cross-checked against the simulator's `GRID_LETTERS` on every generation) inside the original's physical envelope: 187×179 mm outer, 13.51 mm pitch = 74 LEDs/m strip, same serpentine LED convention. Full uncut strip rows (solder only at row ends), letters printed in place with transparent filament (AMS), integrated ESP32 bay + keyhole hanger + alignment pegs on the back plate, generated firmware LED table + Swedish time-logic patch. See [`johniak-sv/README.md`](johniak-sv/README.md).
+Generator, print files (`PRINTA/`), firmware patch and full build guide: [`johniak-sv/README.md`](johniak-sv/README.md).
 
-### Sizes & fabrication
-
-The `laser/` folder has dependency-free Node generators for the physical build (run with `node`):
-
-- **`generate-laser-files.js`** — faceplate SVG/DXF in four sizes: **Mini** (20 mm pitch), **S** (25 mm), **M** (35 mm), **L** (45 mm).
-- **`generate-backplate.js [size]`** and **`generate-frontplate-test.js [size]`** — 3D-printable LED grid + faceplate. Pass `Mini` or `L` (default `L`).
-
-**Mini** is a fully 3D-printed wall/desk build: three single-piece parts on a 256×256 mm bed, all 214×196 mm outer, all one colour — no tiling, no laser cutter, no AMS. The front is a QlockTwo-style **stencil plate**: letters are open through-holes cut with a bridged stencil font (Allerta Stencil), so counters in O/A/Ä/R/Ö stay attached (`laser/frontplate-2color/generate-stencil-front.js`). The back is **two parts** (`laser/generate-backplate-mini.js`): a flat cover that carries the LED snake — soldered fully in the open — with a keyhole wall-hanger, ESP32 bay and cable channel on its rear, plus a wall grid that screws on over the LEDs. Front alternatives: AMS two-colour with embedded translucent letters (`generate-2color.js`), or plain windows + vinyl. Print package: `laser/PRINTA-MINI/`, build steps: [`laser/BYGGGUIDE_3DPRINT_MINI.md`](laser/BYGGGUIDE_3DPRINT_MINI.md). The wall-size **L** build prints as 3×3 tiles.
+Earlier build tracks (laser-cut S/M/L faceplates, 3×3-tiled L print, 18 mm mini variants) are removed from the tree but remain in git history.
 
 ## Credits
 
