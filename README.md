@@ -1,6 +1,6 @@
 # Swedish Word Clock Simulator
 
-An interactive browser-based simulator for a Swedish word clock (QlockTwo-style), designed as a proof-of-concept before laser cutting and building the physical hardware.
+An interactive browser-based simulator for a Swedish word clock (QlockTwo-style), designed as a proof-of-concept before building the physical hardware.
 
 **[Live Demo](https://grimsql.github.io/swedish-word-clock/)**
 
@@ -83,7 +83,7 @@ The physical clock is a Swedish remix of [johniak/word-clock](https://github.com
 
 Generator, print files (`PRINTA/`), firmware patch and full build guide: [`johniak-sv/README.md`](johniak-sv/README.md).
 
-Earlier build tracks (laser-cut S/M/L faceplates, 3×3-tiled L print, 18 mm mini variants) are removed from the tree but remain in git history.
+Earlier build tracks are removed from the tree but remain in git history.
 
 ## Credits
 
