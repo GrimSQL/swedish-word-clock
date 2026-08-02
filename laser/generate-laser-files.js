@@ -27,9 +27,10 @@ const GRID_LETTERS = [
 // SIZE CONFIGURATIONS
 // ============================================================
 const SIZES = {
-  S: { label: 'Small (desktop)',  pitch: 25, cutout: 20, cornerDot: 8, mountHole: 4 },
-  M: { label: 'Medium (wall)',    pitch: 35, cutout: 28, cornerDot: 8, mountHole: 4 },
-  L: { label: 'Large (wall)',     pitch: 45, cutout: 37, cornerDot: 8, mountHole: 4 },
+  Mini: { label: 'Mini (desk, 3D-print)', pitch: 18, cutout: 14, cornerDot: 5, mountHole: 3.2, border: 8,  mountInset: 5 },
+  S:    { label: 'Small (desktop)',        pitch: 25, cutout: 20, cornerDot: 8, mountHole: 4,   border: 15, mountInset: 8 },
+  M:    { label: 'Medium (wall)',          pitch: 35, cutout: 28, cornerDot: 8, mountHole: 4,   border: 15, mountInset: 8 },
+  L:    { label: 'Large (wall)',           pitch: 45, cutout: 37, cornerDot: 8, mountHole: 4,   border: 15, mountInset: 8 },
 };
 
 // Shared constants
@@ -37,8 +38,7 @@ const STROKE_WIDTH = 0.025; // hairline
 const CUT_COLOR = '#FF0000';
 const ENGRAVE_COLOR = '#0000FF';
 const CORNER_RADIUS = 5; // outer frame corner radius in mm
-const FRAME_BORDER = 15; // border around grid area in mm
-const MOUNT_INSET = 8;   // mounting hole inset from panel edge
+// NOTE: frame border and mount-hole inset are per-size (see SIZES above)
 
 // ============================================================
 // SVG HELPERS
@@ -84,8 +84,8 @@ function generateGridSVG(sizeKey) {
   const s = SIZES[sizeKey];
   const gridW = COLS * s.pitch;
   const gridH = ROWS * s.pitch;
-  const panelW = gridW + 2 * FRAME_BORDER;
-  const panelH = gridH + 2 * FRAME_BORDER;
+  const panelW = gridW + 2 * s.border;
+  const panelH = gridH + 2 * s.border;
 
   let svg = svgHeader(panelW, panelH);
 
@@ -98,8 +98,8 @@ function generateGridSVG(sizeKey) {
   // 110 cell windows (centered in each cell)
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
-      const cx = FRAME_BORDER + col * s.pitch + s.pitch / 2;
-      const cy = FRAME_BORDER + row * s.pitch + s.pitch / 2;
+      const cx = s.border + col * s.pitch + s.pitch / 2;
+      const cy = s.border + row * s.pitch + s.pitch / 2;
       const x = cx - s.cutout / 2;
       const y = cy - s.cutout / 2;
       svg += `  ${rect(x, y, s.cutout, s.cutout, CUT_COLOR).trim()}\n`;
@@ -108,7 +108,7 @@ function generateGridSVG(sizeKey) {
 
   // 4 corner dots (minute indicators) — positioned in frame border area at corners of grid
   const dotR = s.cornerDot / 2;
-  const dotInset = FRAME_BORDER / 2; // center in frame border
+  const dotInset = s.border / 2; // center in frame border
   const dotPositions = [
     [dotInset, dotInset],
     [panelW - dotInset, dotInset],
@@ -121,10 +121,10 @@ function generateGridSVG(sizeKey) {
 
   // 4 mounting holes
   const mountPositions = [
-    [MOUNT_INSET, MOUNT_INSET],
-    [panelW - MOUNT_INSET, MOUNT_INSET],
-    [MOUNT_INSET, panelH - MOUNT_INSET],
-    [panelW - MOUNT_INSET, panelH - MOUNT_INSET],
+    [s.mountInset, s.mountInset],
+    [panelW - s.mountInset, s.mountInset],
+    [s.mountInset, panelH - s.mountInset],
+    [panelW - s.mountInset, panelH - s.mountInset],
   ];
   mountPositions.forEach(([cx, cy]) => {
     svg += `  ${circle(cx, cy, s.mountHole / 2, CUT_COLOR).trim()}\n`;
@@ -139,8 +139,8 @@ function generateGridSVG(sizeKey) {
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
       const idx = row * COLS + col;
-      const cx = FRAME_BORDER + col * s.pitch + s.pitch / 2;
-      const cy = FRAME_BORDER + row * s.pitch + s.pitch / 2;
+      const cx = s.border + col * s.pitch + s.pitch / 2;
+      const cy = s.border + row * s.pitch + s.pitch / 2;
       svg += `  ${textElement(cx, cy, GRID_LETTERS[idx], fontSize, ENGRAVE_COLOR).trim()}\n`;
     }
   }
@@ -159,8 +159,8 @@ function generateStencilSVG(sizeKey = 'L') {
   const s = SIZES[sizeKey];
   const gridW = COLS * s.pitch;
   const gridH = ROWS * s.pitch;
-  const panelW = gridW + 2 * FRAME_BORDER;
-  const panelH = gridH + 2 * FRAME_BORDER;
+  const panelW = gridW + 2 * s.border;
+  const panelH = gridH + 2 * s.border;
 
   let svg = svgHeader(panelW, panelH);
 
@@ -182,7 +182,7 @@ function generateStencilSVG(sizeKey = 'L') {
 
   // Corner dots
   const dotR = s.cornerDot / 2;
-  const dotInset = FRAME_BORDER / 2;
+  const dotInset = s.border / 2;
   [
     [dotInset, dotInset],
     [panelW - dotInset, dotInset],
@@ -194,10 +194,10 @@ function generateStencilSVG(sizeKey = 'L') {
 
   // Mounting holes
   [
-    [MOUNT_INSET, MOUNT_INSET],
-    [panelW - MOUNT_INSET, MOUNT_INSET],
-    [MOUNT_INSET, panelH - MOUNT_INSET],
-    [panelW - MOUNT_INSET, panelH - MOUNT_INSET],
+    [s.mountInset, s.mountInset],
+    [panelW - s.mountInset, s.mountInset],
+    [s.mountInset, panelH - s.mountInset],
+    [panelW - s.mountInset, panelH - s.mountInset],
   ].forEach(([cx, cy]) => {
     svg += `  ${circle(cx, cy, s.mountHole / 2, CUT_COLOR).trim()}\n`;
   });
@@ -211,8 +211,8 @@ function generateStencilSVG(sizeKey = 'L') {
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
       const idx = row * COLS + col;
-      const cx = FRAME_BORDER + col * s.pitch + s.pitch / 2;
-      const cy = FRAME_BORDER + row * s.pitch + s.pitch / 2;
+      const cx = s.border + col * s.pitch + s.pitch / 2;
+      const cy = s.border + row * s.pitch + s.pitch / 2;
       svg += `  <text x="${cx}" y="${cy}" font-family="Allerta Stencil, sans-serif" font-weight="400" ` +
         `font-size="${fontSize}" fill="${CUT_COLOR}" stroke="none" ` +
         `text-anchor="middle" dominant-baseline="central">${GRID_LETTERS[idx]}</text>\n`;
@@ -270,8 +270,8 @@ function generateGridDXF(sizeKey) {
   const s = SIZES[sizeKey];
   const gridW = COLS * s.pitch;
   const gridH = ROWS * s.pitch;
-  const panelW = gridW + 2 * FRAME_BORDER;
-  const panelH = gridH + 2 * FRAME_BORDER;
+  const panelW = gridW + 2 * s.border;
+  const panelH = gridH + 2 * s.border;
 
   let dxf = dxfHeader();
 
@@ -281,8 +281,8 @@ function generateGridDXF(sizeKey) {
   // 110 cell windows
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
-      const cx = FRAME_BORDER + col * s.pitch + s.pitch / 2;
-      const cy = FRAME_BORDER + row * s.pitch + s.pitch / 2;
+      const cx = s.border + col * s.pitch + s.pitch / 2;
+      const cy = s.border + row * s.pitch + s.pitch / 2;
       const rx = cx - s.cutout / 2;
       const ry = cy - s.cutout / 2;
       dxf += dxfRect(rx, ry, s.cutout, s.cutout, 'CUT');
@@ -291,7 +291,7 @@ function generateGridDXF(sizeKey) {
 
   // 4 corner dots
   const dotR = s.cornerDot / 2;
-  const dotInset = FRAME_BORDER / 2;
+  const dotInset = s.border / 2;
   [
     [dotInset, dotInset],
     [panelW - dotInset, dotInset],
@@ -303,10 +303,10 @@ function generateGridDXF(sizeKey) {
 
   // 4 mounting holes
   [
-    [MOUNT_INSET, MOUNT_INSET],
-    [panelW - MOUNT_INSET, MOUNT_INSET],
-    [MOUNT_INSET, panelH - MOUNT_INSET],
-    [panelW - MOUNT_INSET, panelH - MOUNT_INSET],
+    [s.mountInset, s.mountInset],
+    [panelW - s.mountInset, s.mountInset],
+    [s.mountInset, panelH - s.mountInset],
+    [panelW - s.mountInset, panelH - s.mountInset],
   ].forEach(([cx, cy]) => {
     dxf += dxfCircle(cx, cy, s.mountHole / 2, 'CUT');
   });
@@ -413,8 +413,8 @@ const outDir = __dirname;
 console.log('Swedish Word Clock — Laser File Generator');
 console.log('==========================================\n');
 
-// Variant A: Grid SVGs in three sizes
-for (const sizeKey of ['S', 'M', 'L']) {
+// Variant A: Grid SVGs in all sizes (Mini prints/cuts as a single desk panel)
+for (const sizeKey of ['Mini', 'S', 'M', 'L']) {
   const filename = `wordclock-grid-${sizeKey}.svg`;
   const { svg, panelW, panelH } = generateGridSVG(sizeKey);
   const filepath = path.join(outDir, filename);
@@ -422,10 +422,10 @@ for (const sizeKey of ['S', 'M', 'L']) {
   console.log(`✓ ${filename}  (${panelW} × ${panelH} mm) — ${SIZES[sizeKey].label}`);
 }
 
-// Variant B: Stencil SVG (L size for laser cutting)
-{
-  const filename = 'wordclock-stencil-L.svg';
-  const { svg, panelW, panelH } = generateStencilSVG('L');
+// Variant B: Stencil SVGs (letter cut-outs) — L for laser, Mini for the desk build
+for (const sizeKey of ['L', 'Mini']) {
+  const filename = `wordclock-stencil-${sizeKey}.svg`;
+  const { svg, panelW, panelH } = generateStencilSVG(sizeKey);
   const filepath = path.join(outDir, filename);
   fs.writeFileSync(filepath, svg, 'utf-8');
   console.log(`✓ ${filename}  (${panelW} × ${panelH} mm) — Stencil variant`);
@@ -440,13 +440,13 @@ for (const sizeKey of ['S', 'M', 'L']) {
   console.log(`✓ ${filename}  — Egg-crate baffle grid`);
 }
 
-// DXF for Scandcut (L size only — their preferred format)
-{
-  const filename = 'wordclock-grid-L.dxf';
-  const { dxf, panelW, panelH } = generateGridDXF('L');
+// DXF (L for Scandcut, Mini for the desk build) — CAD-friendly format
+for (const sizeKey of ['L', 'Mini']) {
+  const filename = `wordclock-grid-${sizeKey}.dxf`;
+  const { dxf, panelW, panelH } = generateGridDXF(sizeKey);
   const filepath = path.join(outDir, filename);
   fs.writeFileSync(filepath, dxf, 'utf-8');
-  console.log(`✓ ${filename}  (${panelW} × ${panelH} mm) — DXF for Scandcut/CAD`);
+  console.log(`✓ ${filename}  (${panelW} × ${panelH} mm) — DXF for CAD`);
 }
 
 console.log('\nDone! Open SVG files in a browser or Inkscape to verify.');

@@ -1,0 +1,14 @@
+{
+  "name": "wordclock-johniak-sv",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Swedish 12×11 remix of johniak's word clock: front (body + transparent letters), back plate, LED table and firmware data generator.",
+  "type": "commonjs",
+  "scripts": {
+    "build": "node generate.js"
+  },
+  "dependencies": {
+    "earcut": "^2.2.4",
+    "opentype.js": "^1.3.4"
+  }
+}

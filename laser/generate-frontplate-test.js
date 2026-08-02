@@ -8,22 +8,39 @@ const fs = require('fs');
 const path = require('path');
 
 // ============================================================
-// PARAMETERS (matching wordclock-stencil-L / backplate)
+// GRID (fixed — must match index.html and the backplate)
 // ============================================================
 const COLS = 11;
 const ROWS = 10;
-const PITCH = 45;            // mm, cell pitch (L size)
-const WALL_THICKNESS = 3;    // mm, wall between cells
-const PANEL_THICKNESS = 3;   // mm, front panel thickness
-const CUTOUT = 37;           // mm, cell window size (L size)
-const CORNER_DOT_DIA = 8;   // mm
-const MOUNT_HOLE_DIA = 4.2;  // mm, M4 clearance
-const FRAME_BORDER = 15;     // mm
-const MOUNT_INSET = 8;       // mm from panel edge
 
-// Section splitting (must match backplate!)
-const COL_SPLITS = [4, 4, 3];
-const ROW_SPLITS = [4, 3, 3];
+// ============================================================
+// SIZE CONFIGURATIONS (must match generate-backplate.js!)
+// Select via CLI:  node generate-frontplate-test.js Mini   (default: L)
+// ============================================================
+const SIZES = {
+  L: {
+    PITCH: 45, WALL_THICKNESS: 3, PANEL_THICKNESS: 3, CUTOUT: 37,
+    CORNER_DOT_DIA: 8, MOUNT_HOLE_DIA: 4.2, FRAME_BORDER: 15, MOUNT_INSET: 8,
+    COL_SPLITS: [4, 4, 3], ROW_SPLITS: [4, 3, 3],
+  },
+  // Mini desk build — whole panel prints in ONE piece (~216 × 198 × 3mm).
+  Mini: {
+    PITCH: 18, WALL_THICKNESS: 2.5, PANEL_THICKNESS: 3, CUTOUT: 14,
+    CORNER_DOT_DIA: 5, MOUNT_HOLE_DIA: 3.2, FRAME_BORDER: 8, MOUNT_INSET: 5,
+    COL_SPLITS: [COLS], ROW_SPLITS: [ROWS],
+  },
+};
+
+const SIZE_KEY = process.argv[2] || 'L';
+if (!SIZES[SIZE_KEY]) {
+  console.error(`Unknown size "${SIZE_KEY}". Choose one of: ${Object.keys(SIZES).join(', ')}`);
+  process.exit(1);
+}
+const {
+  PITCH, WALL_THICKNESS, PANEL_THICKNESS, CUTOUT,
+  CORNER_DOT_DIA, MOUNT_HOLE_DIA, FRAME_BORDER, MOUNT_INSET,
+  COL_SPLITS, ROW_SPLITS,
+} = SIZES[SIZE_KEY];
 
 // ============================================================
 // STL HELPERS
@@ -105,37 +122,10 @@ function generateFrontSection(colStart, colCount, rowStart, rowCount, secCol, se
   const cellInner = CUTOUT;
   const cellMargin = (PITCH - CUTOUT) / 2; // margin around each cutout within the cell
 
-  // Build the grid frame as horizontal and vertical bars + corner blocks
-  // This creates the solid material around the square cell windows
-
-  // --- Vertical bars (between columns of windows) ---
-  for (let c = 0; c <= colCount; c++) {
-    const barX = c * PITCH;
-    const barW = (c === 0 || c === colCount) ? cellMargin + WALL_THICKNESS / 2 : CUTOUT > PITCH - WALL_THICKNESS ? PITCH - CUTOUT : WALL_THICKNESS;
-
-    let actualX, actualW;
-    if (c === 0) {
-      // Left edge bar
-      actualX = 0;
-      actualW = cellMargin;
-    } else if (c === colCount) {
-      // Right edge bar
-      actualX = c * PITCH + cellMargin + CUTOUT;
-      actualW = PITCH - cellMargin - CUTOUT;  // remaining to section edge
-      // Actually, just fill to section width
-      actualX = colCount * PITCH - cellMargin + CUTOUT;
-    } else {
-      // Interior bar
-      actualX = c * PITCH - cellMargin + CUTOUT;
-      // Hmm this is getting complicated. Let me use a different approach.
-    }
-  }
-
-  // SIMPLER APPROACH: Build the panel as a solid base, then we can't subtract in STL.
-  // Instead, build each "wall strip" between and around the windows.
-
-  // The grid creates a frame pattern. Each cell has margins on all 4 sides.
-  // Let's build it row by row, creating horizontal strips and vertical strips.
+  // Build the panel as solid "wall strips" around the square windows.
+  // STL can't do boolean subtraction, so instead of cutting holes we only
+  // emit the solid material between and around the cell windows: full-width
+  // horizontal strips between rows, plus vertical pillars between windows.
 
   const h = PANEL_THICKNESS;
 
@@ -232,14 +222,16 @@ function generateFrontSection(colStart, colCount, rowStart, rowCount, secCol, se
 // MAIN
 // ============================================================
 
-const outDir = path.join(__dirname, '3d-frontplate-test');
+const isMulti = COL_SPLITS.length > 1 || ROW_SPLITS.length > 1;
+const sectionCount = COL_SPLITS.length * ROW_SPLITS.length;
+const outDir = path.join(__dirname, SIZE_KEY === 'L' ? '3d-frontplate-test' : `3d-frontplate-${SIZE_KEY.toLowerCase()}`);
 if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
-console.log('Swedish Word Clock — 3D Test Front Panel Generator');
-console.log('===================================================\n');
-console.log(`Panel: ${COLS}×${ROWS} cells, ${PITCH}mm pitch, ${CUTOUT}mm windows (L size)`);
+console.log('Swedish Word Clock — 3D Front Panel Generator');
+console.log('=============================================\n');
+console.log(`Size: ${SIZE_KEY}  —  ${COLS}×${ROWS} cells, ${PITCH}mm pitch, ${CUTOUT}mm windows`);
 console.log(`Thickness: ${PANEL_THICKNESS}mm, frame border: ${FRAME_BORDER}mm`);
-console.log(`Split into ${COL_SPLITS.length}×${ROW_SPLITS.length} = ${COL_SPLITS.length * ROW_SPLITS.length} printable sections\n`);
+console.log(`Split into ${COL_SPLITS.length}×${ROW_SPLITS.length} = ${sectionCount} printable section(s)\n`);
 
 let rowStart = 0;
 for (let sr = 0; sr < ROW_SPLITS.length; sr++) {
@@ -247,7 +239,9 @@ for (let sr = 0; sr < ROW_SPLITS.length; sr++) {
   for (let sc = 0; sc < COL_SPLITS.length; sc++) {
     const cols = COL_SPLITS[sc];
     const rows = ROW_SPLITS[sr];
-    const filename = `frontplate_test_${sc}_${sr}.stl`;
+    const filename = isMulti
+      ? `frontplate_test_${sc}_${sr}.stl`
+      : `frontplate_${SIZE_KEY.toLowerCase()}.stl`;
     const { stl, sectionW, sectionD } = generateFrontSection(colStart, cols, rowStart, rows, sc, sr);
     const filepath = path.join(outDir, filename);
     fs.writeFileSync(filepath, stl, 'utf-8');
@@ -262,10 +256,10 @@ for (let sr = 0; sr < ROW_SPLITS.length; sr++) {
 console.log(`\nPrint settings:`);
 console.log(`  Material: Black PLA (IMPORTANT: must be opaque!)`);
 console.log(`  Layer height: 0.2mm`);
-console.log(`  Infill: 100% (it's only 3mm thick — prints fast)`);
+console.log(`  Infill: 100% (only ${PANEL_THICKNESS}mm thick — prints fast)`);
 console.log(`  Walls: 99 (solid)`);
 console.log(`  Supports: No`);
-console.log(`  Brim: Yes (thin flat piece needs adhesion)`);
-console.log(`\nAssembly: Snap/glue sections together, place on top of backplate+diffuser.`);
+console.log(`  Brim: Yes (big flat thin piece — brim prevents corner warp)`);
+console.log(`\nAssembly: ${isMulti ? 'Snap/glue sections together, place' : 'Place the panel'} on top of backplate + diffuser.`);
+console.log(`Add the letter layer on top: printed transparency, vinyl, or laser-cut stencil.`);
 console.log(`Test with LEDs to verify light distribution through the ${CUTOUT}mm windows.`);
-console.log(`If satisfied, order the laser-cut metal version from Scandcut.`);

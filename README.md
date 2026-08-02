@@ -81,6 +81,19 @@ Four LEDs in the corners show minutes within each 5-minute block, just like a re
 | LED pitch       | WS2812B strip at 30 or 60 LEDs/m             |
 | Power           | 5V 3A power supply                           |
 
+### johniak-sv — Swedish remix of johniak's Word Clock (recommended build)
+
+`johniak-sv/` is a Swedish remix of [johniak/word-clock](https://github.com/johniak/word-clock) using **this repo's exact 11×10 letter grid** (cross-checked against the simulator's `GRID_LETTERS` on every generation) inside the original's physical envelope: 187×179 mm outer, 13.51 mm pitch = 74 LEDs/m strip, same serpentine LED convention. Full uncut strip rows (solder only at row ends), letters printed in place with transparent filament (AMS), integrated ESP32 bay + keyhole hanger + alignment pegs on the back plate, generated firmware LED table + Swedish time-logic patch. See [`johniak-sv/README.md`](johniak-sv/README.md).
+
+### Sizes & fabrication
+
+The `laser/` folder has dependency-free Node generators for the physical build (run with `node`):
+
+- **`generate-laser-files.js`** — faceplate SVG/DXF in four sizes: **Mini** (20 mm pitch), **S** (25 mm), **M** (35 mm), **L** (45 mm).
+- **`generate-backplate.js [size]`** and **`generate-frontplate-test.js [size]`** — 3D-printable LED grid + faceplate. Pass `Mini` or `L` (default `L`).
+
+**Mini** is a fully 3D-printed wall/desk build: three single-piece parts on a 256×256 mm bed, all 214×196 mm outer, all one colour — no tiling, no laser cutter, no AMS. The front is a QlockTwo-style **stencil plate**: letters are open through-holes cut with a bridged stencil font (Allerta Stencil), so counters in O/A/Ä/R/Ö stay attached (`laser/frontplate-2color/generate-stencil-front.js`). The back is **two parts** (`laser/generate-backplate-mini.js`): a flat cover that carries the LED snake — soldered fully in the open — with a keyhole wall-hanger, ESP32 bay and cable channel on its rear, plus a wall grid that screws on over the LEDs. Front alternatives: AMS two-colour with embedded translucent letters (`generate-2color.js`), or plain windows + vinyl. Print package: `laser/PRINTA-MINI/`, build steps: [`laser/BYGGGUIDE_3DPRINT_MINI.md`](laser/BYGGGUIDE_3DPRINT_MINI.md). The wall-size **L** build prints as 3×3 tiles.
+
 ## Credits
 
 The Swedish time-to-word mapping logic is based on [machosallad/tidsram](https://github.com/machosallad/tidsram), the only dedicated Swedish word clock project on GitHub. The 11x10 grid layout was custom-designed for denser packing compared to tidsram's 12x12.
