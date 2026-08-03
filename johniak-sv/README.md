@@ -46,6 +46,7 @@ Utdata:
 | `out/topshell_sv_body.stl` | Front + cellgaller i ett (187×179×12) | SVART (opak) |
 | `out/topshell_sv_letters.stl` | Bokstäverna, fyller fronten (2,5 mm djup) | **TRANSPARENT** |
 | `out/backplate_sv.stl` | Bakplatta med M3-hål + nyckelhålsupphäng | SVART |
+| `out/backplate_sv_markers.stl` | Strip-markeringsband, 10 st i plattans stripyta | **VIT/kontrast** |
 | `out/preview.svg` | Visuell kontroll av layouten | — |
 | `firmware/words_sv.h` | Genererad LED-tabell till firmware-patchen | — |
 
@@ -65,17 +66,21 @@ Layout: `out/backplate_layout.svg`.
    > **Obs:** i slicern (uppifrån) läses bokstäverna **baklänges** — det är
    > meningen (samma som originalet). Fronten printas mot plåten, så underifrån/
    > framifrån blir de rättvända. Färgbytena sker bara i de nedersta 2,5 mm.
-2. **Bakplatta:** `backplate_sv.stl`, svart, 0.2 mm, brim, **strip-sidan (släta) nedåt**
-   — fickan/kuddarna uppåt. Inga stöd.
+2. **Bakplatta:** importera `backplate_sv.stl` + `backplate_sv_markers.stl`
+   TILLSAMMANS (single object with parts). Plattan → svart, markerings-delen →
+   **vit/valfri kontrastfärg** — det blir tio band i första lagret som visar
+   exakt var varje LED-rad ska klistras. **Strip-sidan (märkta) nedåt**,
+   fickan/kuddarna uppåt. 0.2 mm, brim, inga stöd.
+   Utan AMS: skippa marker-filen — banden blir då 0,2 mm försänkta spår istället.
 
 ## Montera
 
 1. Klipp 74/m-strippen i **10 hela rader à 11 LEDs** (klipp INTE mellan LEDs i
    raden). Max 10 mm bred strip — piggslitsarna går 0,4 mm från stripkanterna.
-2. Klistra raderna på bakplattans SLÄTA sida med 13,51 mm radavstånd (lägg Top
-   Shell ovanpå som mall och markera radcentra först). **Sett från stripsidan:
-   LED 0 (data in) nere till VÄNSTER**, nedersta raden går vänster→höger,
-   serpentin uppåt.
+2. Klistra raderna **exakt i de tio markerade banden** på plattans stripyta —
+   ett band = en rads fotavtryck, inget mätande behövs. **LED 0 (data in) =
+   raden närmast genomföringshålet, börja vid hålet**; den raden går bort från
+   hålet, serpentin vidare rad för rad.
 3. Löd 5V/GND/DIN mellan radsluten (looparna hamnar utanför gridfältet — de ryms
    i kanalen mellan cellgallret och ytterväggen).
 4. Löd tre längre ledare på LED 0 och dra dem genom **genomföringshålet** strax

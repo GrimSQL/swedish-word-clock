@@ -408,6 +408,7 @@ for (const [px, py, w, d] of PEGS) mbox(px, py, TOTAL_H, w, d, PEG_T);
 // coords; addPrism/pbox apply the same X mirror as the shell.
 // ============================================================
 const back = new STL('backplate_sv');
+const backMarkers = new STL('backplate_sv_markers');
 {
   const s = SCREW_HOLE, si = SCREW_INSET;
   const keyEntry = 9, keySlotW = 4.5;
@@ -418,8 +419,14 @@ const back = new STL('backplate_sv');
   // view (row 9 is odd: index = x, so index 0 is at column 0).
   const passHole = rectRing(8, 149, 6, 6);
 
-  // Peg slots (match PEGS on the shell, +0.3mm clearance all around)
-  const pegSlots = PEGS.map(([px, py, w, d]) => rectRing(px - 0.3, py - 0.3, w + 0.6, d + 0.6));
+  // Peg slots — matched to the shell AS PRINTED. The shell's walls and pegs
+  // are emitted through mbox (X mirror only), while plate holes go through
+  // addPrism (X AND Y mirror). A peg at design-y `py` therefore sits at
+  // STL-y `py`, and the slot must be pre-flipped in Y here to land on it.
+  // Viktor's shell is already printed against this frame — do NOT "clean up"
+  // the mbox/addPrism asymmetry without reprinting the shell.
+  const pegSlots = PEGS.map(([px, py, w, d]) =>
+    rectRing(px - 0.3, (OUTER_H - py - d) - 0.3, w + 0.6, d + 0.6));
 
   const holes = [
     rectRing(si - s/2, si - s/2, s, s),
@@ -431,7 +438,19 @@ const back = new STL('backplate_sv');
     passHole,
     ...pegSlots,
   ];
-  addPrism(back, rectRing(0, 0, OUTER_W, OUTER_H), holes, 0, BACK_T);
+
+  // Strip-placement markers: ten 10mm bands (the exact strip footprint per row)
+  // in the FIRST 0.2mm of the strip face, as a separate mesh for a contrast
+  // filament. Without AMS the bands become 0.2mm recessed grooves instead.
+  const MARK_T = 0.2;
+  const bands = [];
+  for (let r = 0; r < ROWS; r++) {
+    const yc = GY + (r + 0.5) * PITCH;
+    bands.push(rectRing(GX, yc - 5, GRID_W, 10));
+  }
+  addPrism(back, rectRing(0, 0, OUTER_W, OUTER_H), [...holes, ...bands], 0, MARK_T);
+  addPrism(back, rectRing(0, 0, OUTER_W, OUTER_H), holes, MARK_T, BACK_T);
+  for (const b of bands) addPrism(backMarkers, b, [], 0, MARK_T);
 
   // --- Back-side features (z above BACK_T), mirrored like everything else ---
   const pbox = (x, y, z, w, d, h) => back.box(OUTER_W - x - w, y, z, w, d, h);
@@ -477,6 +496,7 @@ for (const d of [outDir, fwDir]) if (!fs.existsSync(d)) fs.mkdirSync(d, { recurs
 fs.writeFileSync(path.join(outDir, 'topshell_sv_body.stl'), body.toString(), 'utf-8');
 fs.writeFileSync(path.join(outDir, 'topshell_sv_letters.stl'), letters.toString(), 'utf-8');
 fs.writeFileSync(path.join(outDir, 'backplate_sv.stl'), back.toString(), 'utf-8');
+fs.writeFileSync(path.join(outDir, 'backplate_sv_markers.stl'), backMarkers.toString(), 'utf-8');
 fs.writeFileSync(path.join(fwDir, 'words_sv.h'), hdr, 'utf-8');
 
 const svgDoc = inner => `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${OUTER_W}mm" height="${OUTER_H}mm" viewBox="0 0 ${OUTER_W} ${OUTER_H}">\n${inner}\n</svg>\n`;
@@ -501,8 +521,9 @@ fs.writeFileSync(path.join(outDir, 'preview_slicer_view.svg'),
   sv += R(kx - 4.5, 6.5, 9, 9, '#111') + R(kx - 2.25, 2, 4.5, 4.5, '#111') + T(kx, 26, 'NYCKELHÅL');
   for (const [px, py] of [[11, 11], [OUTER_W-21, 11], [11, OUTER_H-21], [OUTER_W-21, OUTER_H-21]]) sv += R(px + 10, py, 10, 10, '#444');
   for (const [sx, sy] of [[6, 6], [OUTER_W-6, 6], [6, OUTER_H-6], [OUTER_W-6, OUTER_H-6]]) sv += R(sx + 1.7, sy - 1.7, 3.4, 3.4, '#111');
-  for (const [px, py, w, d] of PEGS) sv += R(px + w, py - 0.3, w + 0.6, d + 0.6, '#c96') + '';
-  sv += T(kx, 20.5, 'piggslitsar ↑', 4);
+  for (const [px, py, w, d] of PEGS) sv += R(px + w, (OUTER_H - py - d) - 0.3, w + 0.6, d + 0.6, '#c96') + '';
+  sv += T(kx, OUTER_H - 25, 'piggslitsar (par) ↓', 4);
+  sv += T(kx - 45, 31, 'piggslits (ensam) ↑', 4);
   sv += R(kx + 17.5, 97.5, 35, 60, '#555') + R(kx + 15, 100, 30, 55, '#333') + T(kx, 130, 'ESP32') + T(kx, 137, '(USB nedåt)', 3.5);
   sv += R(kx + 6.5, 158, 2.5, 16.6, '#555') + R(kx - 4, 158, 2.5, 16.6, '#555') + T(kx - 24, 168, 'sladd ⭣', 4);
   sv += R(14, 149, 6, 6, '#111') + T(34, 154, 'LED-kablar (LED 0) →', 3.5);
@@ -518,6 +539,7 @@ console.log(`Font: ${path.basename(FONT_PATH)}  cap ${CAP_MM.toFixed(1)}mm (auto
 console.log(`topshell body    : ${body.tris.length} tris  ${bb.map(x=>x.toFixed(1)).join(' × ')} mm`);
 console.log(`topshell letters : ${letters.tris.length} tris  ${lb.map(x=>x.toFixed(1)).join(' × ')} mm  (TRANSPARENT filament)`);
 console.log(`backplate        : ${back.tris.length} tris  ${kb.map(x=>x.toFixed(1)).join(' × ')} mm`);
+console.log(`strip markers    : ${backMarkers.tris.length} tris  (första 0,2mm av strip-sidan — kontrastfilament)`);
 console.log(`\nLED table (serpentine, matches original firmware convention):`);
 for (const [name, [lo, hi]] of Object.entries(LED_TABLE)) console.log(`  ${name.padEnd(8)} ${lo}-${hi}`);
 console.log(`\nOutput -> out/  +  firmware/words_sv.h`);
