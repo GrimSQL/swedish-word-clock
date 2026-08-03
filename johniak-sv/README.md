@@ -87,9 +87,16 @@ Layout: `out/backplate_layout.svg`.
    ovanför (i högerkanalen) → till **ESP32-fickan** på baksidan. 5V + GND till
    strömmen, DIN till GPIO enligt originalets wiring-guide (`docs/device_build.md`).
    ESP32:n glider in i fickan med USB nedåt; en klick limpistol om den sitter löst.
-5. **Stäng klockan:** lägg plattan på skalet — de tre **piggarna** går ner i
-   slitsarna (passar bara åt rätt håll) — och skruva **4× M3 självgängande** i
-   hörnbossarna. Strömsladden ut genom kabelkanalen + notchen i underkanten.
+5. **Stäng klockan:** lägg plattan på skalet — de tre **piggarna** (sitter
+   fast på skalets gallerväggar, printas ihop med skalet) går ner i slitsarna
+   (passar bara åt rätt håll) — och skruva **4× M3 självgängande** genom
+   plattans hörnhål in i skalets **hörnpelare** (bossarna).
+   > Skruvkanalerna i pelarna är **fyrkantiga med flit** (2,7 mm): M3-skruven
+   > pressas/gängas rakt i och biter i de fyra plansidorna — fyrkantigt
+   > spricker mindre än runt i print. Alternativ: superlimma plattan mot
+   > väggtopparna — men först när ALLT är testat (LEDs + firmware); en limmad
+   > klocka går inte att öppna för service.
+   Strömsladden ut genom kabelkanalen + notchen.
 6. Häng på väggskruv via **nyckelhålet**, eller ställ den på bord.
 7. Firmware: se [`firmware/PATCH.md`](firmware/PATCH.md).
 
