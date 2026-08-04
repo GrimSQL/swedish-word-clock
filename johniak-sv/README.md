@@ -96,7 +96,8 @@ Layout: `out/backplate_layout.svg`.
    > spricker mindre än runt i print. Alternativ: superlimma plattan mot
    > väggtopparna — men först när ALLT är testat (LEDs + firmware); en limmad
    > klocka går inte att öppna för service.
-   Strömsladden ut genom kabelkanalen + notchen.
+   Strömsladden går från fickan (nere på baksidan) mellan kabelstöden och
+   rakt ut under klockans underkant — kortast möjliga, syns inte framifrån.
 6. Häng på väggskruv via **nyckelhålet**, eller ställ den på bord.
 7. Firmware: se [`firmware/PATCH.md`](firmware/PATCH.md).
 

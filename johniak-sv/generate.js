@@ -456,19 +456,20 @@ const backMarkers = new STL('backplate_sv_markers');
   const pbox = (x, y, z, w, d, h) => back.box(OUTER_W - x - w, y, z, w, d, h);
   const STANDOFF = 6;                    // wall standoff height (pads = tallest features)
 
-  // ESP32 bay, bottom-centre: DevKit v1 (~28.5×52) slides between the rails,
-  // USB downward toward the cable channel. Open at the bottom.
+  // ESP32 bay at the HUNG-BOTTOM of the back: pbox y is unflipped, so low
+  // design-y = low STL-y = the hanging bottom (keyhole lands at high STL-y).
+  // Board vertical, USB toward the bottom edge — the power cable drops
+  // straight out under the clock. End-stop at the top end, open downward.
   const bayInnerW = 30, bayLen = 55, rail = 2.5, railH = 5;
-  const bx0 = kx - bayInnerW/2, bayY = 100;
+  const bx0 = kx - bayInnerW/2, bayY = 12;                                 // bay y 12..67
   pbox(bx0 - rail, bayY, BACK_T, rail, bayLen, railH);
   pbox(bx0 + bayInnerW, bayY, BACK_T, rail, bayLen, railH);
-  pbox(bx0 - rail, bayY - rail, BACK_T, bayInnerW + 2*rail, rail, railH);  // top end-stop
+  pbox(bx0 - rail, bayY + bayLen, BACK_T, bayInnerW + 2*rail, rail, railH); // end-stop (top end)
 
-  // Cable channel: two rails guiding the USB/power cable from the bay straight
-  // out over the bottom edge.
+  // Short cable guide stubs from the bay opening to the bottom edge.
   const chGap = 8, chRail = 2.5;
-  pbox(kx - chGap/2 - chRail, bayY + bayLen + 3, BACK_T, chRail, OUTER_H - (bayY + bayLen + 3) - 2, 4);
-  pbox(kx + chGap/2, bayY + bayLen + 3, BACK_T, chRail, OUTER_H - (bayY + bayLen + 3) - 2, 4);
+  pbox(kx - chGap/2 - chRail, 2, BACK_T, chRail, bayY - 4, 4);
+  pbox(kx + chGap/2, 2, BACK_T, chRail, bayY - 4, 4);
 
   // Corner standoff pads — the clock hangs flat on these + the keyhole area.
   for (const [px, py] of [[11, 11], [OUTER_W-21, 11], [11, OUTER_H-21], [OUTER_W-21, OUTER_H-21]])
@@ -509,24 +510,33 @@ const mirrorPath = r => 'M' + r.map(([x, y]) => `${(OUTER_W - x).toFixed(3)} ${y
 fs.writeFileSync(path.join(outDir, 'preview_slicer_view.svg'),
   svgDoc(`  <rect x="0" y="0" width="${OUTER_W}" height="${OUTER_H}" fill="#2a2a2a"/>\n  <path d="${allRings.map(mirrorPath).join(' ')}" fill="#9ad" fill-rule="evenodd"/>`), 'utf-8');
 
-// backplate_layout.svg — the plate's BACK as you see it during assembly
-// (same mirrored frame as the slicer top view).
+// backplate_layout.svg — the plate's BACK in HANGING orientation (keyhole up),
+// as seen standing behind the clock. Through-holes (addPrism, X+Y mirrored)
+// keep their design y; pbox features (X-only mirror) get y -> OUTER_H - y - h.
+// X for both: OUTER_W - x - w (back view shows STL x directly).
 {
-  const M = x => OUTER_W - x; // mirror helper for [x, w] pairs: rect at M(x)-w
-  const R = (x, y, w, h, fill) => `  <rect x="${(M(x)-w).toFixed(2)}" y="${y}" width="${w}" height="${h}" fill="${fill}"/>\n`;
-  const T = (x, y, t, s = 5) => `  <text x="${M(x).toFixed(2)}" y="${y}" font-family="sans-serif" font-size="${s}" fill="#ddd" text-anchor="middle">${t}</text>\n`;
+  const hx = (x, w) => OUTER_W - x - w;
+  const R  = (x, y, w, h, fill) => `  <rect x="${hx(x, w).toFixed(2)}" y="${y.toFixed(2)}" width="${w}" height="${h}" fill="${fill}"/>\n`;
+  const Rp = (x, y, w, h, fill) => R(x, OUTER_H - y - h, w, h, fill);
+  const T  = (x, y, t, s = 5) => `  <text x="${x.toFixed(2)}" y="${y}" font-family="sans-serif" font-size="${s}" fill="#ddd" text-anchor="middle">${t}</text>\n`;
   const kx = OUTER_W / 2;
   let sv = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${OUTER_W}mm" height="${OUTER_H}mm" viewBox="-2 -2 ${OUTER_W+4} ${OUTER_H+4}">\n`;
   sv += `  <rect x="0" y="0" width="${OUTER_W}" height="${OUTER_H}" fill="#2a2a2a" stroke="#666" stroke-width="0.5"/>\n`;
+  // through-holes
   sv += R(kx - 4.5, 6.5, 9, 9, '#111') + R(kx - 2.25, 2, 4.5, 4.5, '#111') + T(kx, 26, 'NYCKELHÅL');
-  for (const [px, py] of [[11, 11], [OUTER_W-21, 11], [11, OUTER_H-21], [OUTER_W-21, OUTER_H-21]]) sv += R(px + 10, py, 10, 10, '#444');
-  for (const [sx, sy] of [[6, 6], [OUTER_W-6, 6], [6, OUTER_H-6], [OUTER_W-6, OUTER_H-6]]) sv += R(sx + 1.7, sy - 1.7, 3.4, 3.4, '#111');
-  for (const [px, py, w, d] of PEGS) sv += R(px + w, (OUTER_H - py - d) - 0.3, w + 0.6, d + 0.6, '#c96') + '';
-  sv += T(kx, OUTER_H - 25, 'piggslitsar (par) ↓', 4);
-  sv += T(kx - 45, 31, 'piggslits (ensam) ↑', 4);
-  sv += R(kx + 17.5, 97.5, 35, 60, '#555') + R(kx + 15, 100, 30, 55, '#333') + T(kx, 130, 'ESP32') + T(kx, 137, '(USB nedåt)', 3.5);
-  sv += R(kx + 6.5, 158, 2.5, 16.6, '#555') + R(kx - 4, 158, 2.5, 16.6, '#555') + T(kx - 24, 168, 'sladd ⭣', 4);
-  sv += R(14, 149, 6, 6, '#111') + T(34, 154, 'LED-kablar (LED 0) →', 3.5);
+  for (const [x, y] of [[6, 6], [OUTER_W-6, 6], [6, OUTER_H-6], [OUTER_W-6, OUTER_H-6]])
+    sv += R(x - 1.7, y - 1.7, 3.4, 3.4, '#111');
+  for (const [px, py, w, d] of PEGS)
+    sv += R(px - 0.3, (OUTER_H - py - d) - 0.3, w + 0.6, d + 0.6, '#c96');
+  sv += T(58.6, 16, 'piggslits (ensam)', 4);
+  sv += T(152, 152, '← piggslitsar (par)', 3.5);
+  sv += R(8, 149, 6, 6, '#111') + T(146, 154.5, 'LED-kablar (LED 0) →', 3.5);
+  // back-side features
+  for (const [px, py] of [[11, 11], [OUTER_W-21, 11], [11, OUTER_H-21], [OUTER_W-21, OUTER_H-21]])
+    sv += Rp(px, py, 10, 10, '#444');
+  sv += Rp(kx - 17.5, 12, 35, 57.5, '#555') + Rp(kx - 15, 12, 30, 55, '#333');
+  sv += T(kx, 136, 'ESP32') + T(kx, 144, '(USB nedåt)', 3.5);
+  sv += Rp(kx - 6.5, 2, 2.5, 8, '#555') + Rp(kx + 4, 2, 2.5, 8, '#555') + T(kx + 26, 175, 'sladd ⭣', 4);
   sv += '</svg>\n';
   fs.writeFileSync(path.join(outDir, 'backplate_layout.svg'), sv, 'utf-8');
 }
