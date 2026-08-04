@@ -329,6 +329,29 @@ function addPrism(stl, outer, holes, z0, z1) {
 const rectRing = (x, y, w, h) => [[x, y], [x+w, y], [x+w, y+h], [x, y+h]];
 const ringToSvg = r => 'M' + r.map(([x, y]) => `${x.toFixed(3)} ${y.toFixed(3)}`).join(' L') + ' Z';
 
+// Like addPrism but in the BACK-FEATURE frame (X mirror only, y unflipped —
+// same frame as pbox). Used for non-rectangular back geometry (the wall hook).
+function addBackPrism(stl, outer, holes, z0, z1) {
+  const FX = x => OUTER_W - x, FY = y => y;
+  const orient = (r, wantPos) => (signedArea(r.map(([x, y]) => [FX(x), FY(y)])) > 0) === wantPos ? r : r.slice().reverse();
+  const flat = [], holeIdx = [], fRings = [];
+  const push = r => { const fr = r.map(([x, y]) => [FX(x), FY(y)]); fRings.push(fr); for (const [x, y] of fr) flat.push(x, y); };
+  push(orient(outer, true));
+  for (const h of holes) { holeIdx.push(flat.length / 2); push(orient(h, false)); }
+  const tris = earcut(flat, holeIdx, 2);
+  const V = i => [flat[i*2], flat[i*2+1]];
+  for (let i = 0; i < tris.length; i += 3) {
+    const a = V(tris[i]), b = V(tris[i+1]), c = V(tris[i+2]);
+    stl.tri([a[0],a[1],z1], [b[0],b[1],z1], [c[0],c[1],z1]);
+    stl.tri([a[0],a[1],z0], [c[0],c[1],z0], [b[0],b[1],z0]);
+  }
+  for (const R of fRings) for (let i = 0; i < R.length; i++) {
+    const p = R[i], q = R[(i + 1) % R.length];
+    stl.tri([p[0],p[1],z0], [q[0],q[1],z0], [q[0],q[1],z1]);
+    stl.tri([p[0],p[1],z0], [q[0],q[1],z1], [p[0],p[1],z1]);
+  }
+}
+
 // ============================================================
 // TOP SHELL (body + letters)
 // ============================================================
@@ -411,7 +434,6 @@ const back = new STL('backplate_sv');
 const backMarkers = new STL('backplate_sv_markers');
 {
   const s = SCREW_HOLE, si = SCREW_INSET;
-  const keyEntry = 9, keySlotW = 4.5;
   const kx = OUTER_W / 2;
 
   // LED wire pass-through: LEFT side channel (outside the grid field), next to
@@ -428,13 +450,13 @@ const backMarkers = new STL('backplate_sv_markers');
   const pegSlots = PEGS.map(([px, py, w, d]) =>
     rectRing(px - 0.3, (OUTER_H - py - d) - 0.3, w + 0.6, d + 0.6));
 
+  // No keyhole through-hole any more — the wall hook is a solid boss on the
+  // back (below), so the plate stays closed at the top.
   const holes = [
     rectRing(si - s/2, si - s/2, s, s),
     rectRing(OUTER_W - si - s/2, si - s/2, s, s),
     rectRing(si - s/2, OUTER_H - si - s/2, s, s),
     rectRing(OUTER_W - si - s/2, OUTER_H - si - s/2, s, s),
-    rectRing(kx - keyEntry/2, 6.5, keyEntry, keyEntry),   // keyhole entry (screw head)
-    rectRing(kx - keySlotW/2, 2, keySlotW, 4.5),          // keyhole slot, upward
     passHole,
     ...pegSlots,
   ];
@@ -471,9 +493,34 @@ const backMarkers = new STL('backplate_sv_markers');
   pbox(kx - chGap/2 - chRail, 2, BACK_T, chRail, bayY - 4, 4);
   pbox(kx + chGap/2, 2, BACK_T, chRail, bayY - 4, 4);
 
-  // Corner standoff pads — the clock hangs flat on these + the keyhole area.
+  // Corner standoff pads — the clock hangs flat on these + the hook face.
   for (const [px, py] of [[11, 11], [OUTER_W-21, 11], [11, OUTER_H-21], [OUTER_W-21, OUTER_H-21]])
     pbox(px, py, BACK_T, 10, 10, STANDOFF);
+
+  // --- Smart wall hook (replaces the flat keyhole): a hanger boss at the
+  // hung TOP (pbox frame: high y = top) with a wide V-funnel opening
+  // DOWNWARD. Hold the clock roughly right, slide down — the 24mm funnel
+  // catches the screw/nail anywhere, self-centres the shaft into the slot,
+  // and the head locks in the cavity behind the 1.4mm face lip.
+  // Flush with the pads (z 3..9) so the clock hangs flat.
+  // Wall screw: head <= 9mm, driven so the head sits ~3-4mm off the wall.
+  {
+    const x0 = kx - 18, x1 = kx + 18, y0 = 150, y1 = 172;
+    // solid base layer
+    addBackPrism(back, rectRing(x0, y0, x1 - x0, y1 - y0), [], BACK_T, BACK_T + 1.4);
+    // head-cavity layer: block with a funnel notch in its bottom edge
+    addBackPrism(back, [
+      [x0, y0], [kx - 13, y0], [kx - 5.5, 160], [kx - 5.5, 166.5],
+      [kx + 5.5, 166.5], [kx + 5.5, 160], [kx + 13, y0], [x1, y0],
+      [x1, y1], [x0, y1],
+    ], [], BACK_T + 1.4, BACK_T + 4.6);
+    // face layer: narrower funnel + slot — the lip that retains the screw head
+    addBackPrism(back, [
+      [x0, y0], [kx - 12, y0], [kx - 2.3, 161], [kx - 2.3, 165.5],
+      [kx + 2.3, 165.5], [kx + 2.3, 161], [kx + 12, y0], [x1, y0],
+      [x1, y1], [x0, y1],
+    ], [], BACK_T + 4.6, BACK_T + STANDOFF);
+  }
 }
 
 // ============================================================
@@ -523,7 +570,6 @@ fs.writeFileSync(path.join(outDir, 'preview_slicer_view.svg'),
   let sv = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${OUTER_W}mm" height="${OUTER_H}mm" viewBox="-2 -2 ${OUTER_W+4} ${OUTER_H+4}">\n`;
   sv += `  <rect x="0" y="0" width="${OUTER_W}" height="${OUTER_H}" fill="#2a2a2a" stroke="#666" stroke-width="0.5"/>\n`;
   // through-holes
-  sv += R(kx - 4.5, 6.5, 9, 9, '#111') + R(kx - 2.25, 2, 4.5, 4.5, '#111') + T(kx, 26, 'NYCKELHÅL');
   for (const [x, y] of [[6, 6], [OUTER_W-6, 6], [6, OUTER_H-6], [OUTER_W-6, OUTER_H-6]])
     sv += R(x - 1.7, y - 1.7, 3.4, 3.4, '#111');
   for (const [px, py, w, d] of PEGS)
@@ -532,6 +578,13 @@ fs.writeFileSync(path.join(outDir, 'preview_slicer_view.svg'),
   sv += T(152, 152, '← piggslitsar (par)', 3.5);
   sv += R(8, 149, 6, 6, '#111') + T(146, 154.5, 'LED-kablar (LED 0) →', 3.5);
   // back-side features
+  sv += Rp(kx - 18, 150, 36, 22, '#555');
+  {
+    const p = [[kx-12,150],[kx-2.3,161],[kx-2.3,165.5],[kx+2.3,165.5],[kx+2.3,161],[kx+12,150]]
+      .map(([x, y]) => `${(OUTER_W - x).toFixed(2)},${(OUTER_H - y).toFixed(2)}`).join(' ');
+    sv += `  <polygon points="${p}" fill="#111"/>\n`;
+  }
+  sv += T(kx, 36, 'KROK — tratten fångar skruven, dra nedåt', 4);
   for (const [px, py] of [[11, 11], [OUTER_W-21, 11], [11, OUTER_H-21], [OUTER_W-21, OUTER_H-21]])
     sv += Rp(px, py, 10, 10, '#444');
   sv += Rp(kx - 17.5, 12, 35, 57.5, '#555') + Rp(kx - 15, 12, 30, 55, '#333');

@@ -1,4 +1,4 @@
-# Swedish Word Clock Simulator
+﻿# Swedish Word Clock Simulator
 
 An interactive browser-based simulator for a Swedish word clock (QlockTwo-style), designed as a proof-of-concept before building the physical hardware.
 
@@ -77,7 +77,7 @@ The physical clock is a Swedish remix of [johniak/word-clock](https://github.com
 |-------------|----------------------------------------------------------------|
 | Shell       | 3D-printed, 187×179 mm, letters printed in place (AMS: black + transparent) |
 | LEDs        | 110× WS2812B — **74 LEDs/m strip**, 10 uncut rows of 11 (13.51 mm pitch) |
-| Back plate  | 3D-printed: ESP32 bay, keyhole wall-hanger, alignment pegs, cable channel |
+| Back plate  | 3D-printed: ESP32 bay, self-centring funnel wall hook, alignment pegs, cable channel |
 | MCU         | ESP32 DevKit v1 (WiFi/NTP), firmware = johniak's + Swedish patch |
 | Power       | 5V 3A                                                          |
 

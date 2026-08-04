@@ -1,4 +1,4 @@
-# johniak-sv — svensk version av johniaks Word Clock
+﻿# johniak-sv — svensk version av johniaks Word Clock
 
 Svensk remix av [johniak/word-clock](https://github.com/johniak/word-clock)
 (Makerworld: "Word Clock"). Behåller originalets fysiska gränssnitt exakt —
@@ -45,14 +45,14 @@ Utdata:
 |---|---|---|
 | `out/topshell_sv_body.stl` | Front + cellgaller i ett (187×179×12) | SVART (opak) |
 | `out/topshell_sv_letters.stl` | Bokstäverna, fyller fronten (2,5 mm djup) | **TRANSPARENT** |
-| `out/backplate_sv.stl` | Bakplatta med M3-hål + nyckelhålsupphäng | SVART |
+| `out/backplate_sv.stl` | Bakplatta med M3-hål + tratt-krok för vägg | SVART |
 | `out/backplate_sv_markers.stl` | Strip-markeringsband, 10 st i plattans stripyta | **VIT/kontrast** |
 | `out/preview.svg` | Visuell kontroll av layouten | — |
 | `firmware/words_sv.h` | Genererad LED-tabell till firmware-patchen | — |
 
 Ingen extern elektronikbox behövs — **ESP32:n sitter i en ficka på bakplattans
 baksida** (skenor + ändstopp, USB nedåt mot kabelkanalen). Bakplattan har även
-**nyckelhålsupphäng**, **stödkuddar** (hänger plant), **genomföringshål** för
+**tratt-krok** (fångar väggskruven själv), **stödkuddar** (hänger plant), **genomföringshål** för
 LED-kablarna vid LED 0, och **piggslitsar**: tre piggar på skalets gallerväggar
 går ner i slitsarna så plattan självcentrerar — de fyra M3-skruvarna klämmer.
 Layout: `out/backplate_layout.svg`.
@@ -98,7 +98,7 @@ Layout: `out/backplate_layout.svg`.
    > klocka går inte att öppna för service.
    Strömsladden går från fickan (nere på baksidan) mellan kabelstöden och
    rakt ut under klockans underkant — kortast möjliga, syns inte framifrån.
-6. Häng på väggskruv via **nyckelhålet**, eller ställ den på bord.
+6. Häng upp: skruv/spik i väggen med huvudet ~3–4 mm ut. Håll klockan mot väggen ungefär rätt och dra nedåt — **tratt-kroken** fångar skruven, centrerar den själv och låser huvudet bakom läppen. Eller ställ den på bord.
 7. Firmware: se [`firmware/PATCH.md`](firmware/PATCH.md).
 
 ## Köplista
@@ -111,7 +111,7 @@ Layout: `out/backplate_layout.svg`.
 | Svart PLA | skal + bakplatta |
 | Ström | 5V 3A |
 | M3 självgängande | 4 st 8–10 mm (bakplatta → skalets bossar) |
-| Väggskruv | 1 st, huvud ≤ 8 mm (nyckelhålet) |
+| Väggskruv/spik | 1 st, huvud ≤ 9 mm, ~3–4 mm från väggen (tratt-kroken) |
 
 ## Äldre byggvarianter
 
