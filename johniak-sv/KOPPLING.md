@@ -172,6 +172,43 @@ mellan cellgallret och ytterväggen (16,2 mm bred, 9,5 mm djup).
 - Krympslang över varje skarv
 - Blyfritt: 350–370 °C, flussmedel är obligatoriskt, fogen blir matt och kornig — det är normalt
 
+#### Skarvschemat
+
+Kanten växlar varje gång. Datan går nedifrån och upp, så skarv 1 är den nedersta.
+
+| Skarv | Från → till | Kant | Testa efter, 2D-index | Tända LEDs |
+|---|---|---|---|---|
+| 1 | rad 10 → 9 | **höger** | `[88,110,"FFFFFF"]` | 22 |
+| 2 | rad 9 → 8 | **vänster** | `[77,110,"FFFFFF"]` | 33 |
+| 3 | rad 8 → 7 | **höger** | `[66,110,"FFFFFF"]` | 44 |
+| 4 | rad 7 → 6 | **vänster** | `[55,110,"FFFFFF"]` | 55 |
+| 5 | rad 6 → 5 | **höger** | `[44,110,"FFFFFF"]` | 66 |
+| 6 | rad 5 → 4 | **vänster** | `[33,110,"FFFFFF"]` | 77 |
+| 7 | rad 4 → 3 | **höger** | `[22,110,"FFFFFF"]` | 88 |
+| 8 | rad 3 → 2 | **vänster** | `[11,110,"FFFFFF"]` | 99 |
+| 9 | rad 2 → 1 | **höger** | `[0,110,"FFFFFF"]` | 110 |
+
+Fem på höger kant, fyra på vänster. Varje rad ligger vänd 180° mot sin granne, så
+vid varje skarv gäller: **ström korsar diagonalt, data rakt över mitten.** Mitten-
+ön är data på båda raderna och är den enda som inte byter sida vid rotationen.
+
+#### Kolla riktningen på varje ny rad
+
+Att raden lyser räcker inte — den kan lysa och ändå ligga bakvänd. Släck allt och
+tänd den vänstra LEDen i varje lödd rad, en färg per rad:
+
+```powershell
+wled '{"on":true,"bri":128,"seg":[{"id":0,"fx":0,"frz":false,"col":[[0,0,0]]}]}'
+wled '{"seg":[{"i":[99,"FF0000"]}]}'
+wled '{"seg":[{"i":[88,"0000FF"]}]}'
+wled '{"seg":[{"i":[77,"00FF00"]}]}'
+```
+
+De ska bilda en **lodrät linje i vänsterkanten**, en per rad nedifrån och upp.
+Hoppar en av dem över till högerkanten ligger den raden 180° fel — och då ska
+tejpen lossna nu, inte efter nästa skarv. Fortsätt med nästa index ur tabellen
+(`66`, `55`, `44` …) allteftersom du lödar uppåt.
+
 #### Mät varje skarv innan du sätter ström
 
 Trettio sekunder med multimeter per skarv. Det är skillnaden mellan att **veta**
