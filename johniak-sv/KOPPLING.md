@@ -47,11 +47,39 @@ graph LR
     ESP -->|"GPIO16 → 330 Ω"| SD["strip DIN<br/>(grön)"]
 ```
 
-| Strippens kabel | Går till | Kommentar |
-|---|---|---|
-| **Röd** | ESP32 `5V` (kan vara märkt `VIN`) | Använd det grövre lösa paret, inte 3-gruppens tunna röda |
-| **Vit** | ESP32 `GND` | Gemensam jord är obligatorisk — utan den ser strippen ingen data |
-| **Grön** | ESP32 `GPIO16` | 330 Ω i serie, lödd **vid strippen**, inte vid kortet |
+### Strippens tre kablar → ESP32
+
+**Färgen på pigtailen säger vad kabeln är. Texten på kortet säger vart den ska.**
+
+| Strippens kabel | Signal | ESP32-stift | Står på kortet som |
+|---|---|---|---|
+| **Röd** | `+5V` | `VIN` | `VIN`, ibland `5V` |
+| **Vit** | `GND` | `GND` | ta den **bredvid `VIN`** |
+| **Grön** | `DIN` | GPIO16 | **`RX2`**, `D16` eller `16` — alla är samma stift |
+
+Håll kortet med **USB-kontakten nedåt** och komponentsidan mot dig:
+
+- **`VIN`** — nedersta stiftet i **vänstra** raden, hörnet närmast USB
+- **`GND`** — direkt **ovanför** `VIN`, samma rad
+- **`RX2`** — **högra** raden, **femte stiftet räknat nedifrån**
+
+Röd och vit hamnar alltså bredvid varandra nere till vänster, grön ensam på
+andra sidan kortet.
+
+> ⚠️ **Kolla att röd sitter på `VIN` och inte på `RX2` innan du sätter i USB:n.**
+> Det är den enda felkopplingen i hela bygget som kan skada kortet — 5 V rakt in
+> i en 3,3 V-pinne. Att röd och grön hamnar på var sin sida av kortet är just
+> för att göra förväxlingen svår.
+
+Osäker på ditt kort? Mät `VIN` mot `GND` med USB i, ratten på `V⎓`: **4,6–5,0 V**
+förväntat. Läser den 0 matar inte det kortet 5 V utåt, och strippens röda får tas
+direkt från USB-källan istället.
+
+`GPIO16` är silkscreen-märkt `RX2` på de flesta DevKit v1 — det ser ut som en
+seriell port men är rätt stift. Det är satt i WLED under *Config → LED
+Preferences*.
+
+### Strippens kabelgrupper
 
 Strippen har två kabelgrupper i samma ände och de sitter parallellt på samma tre
 lödöar: en 3-grupp (röd/grön/vit = 5V/DIN/GND) och ett lösare par (röd/vit =
@@ -151,6 +179,22 @@ vilken fog som är trasig och att gissa i en färdiglödd loop.
 
 Svart mätsladd i `COM`, röd i `VΩmA` — aldrig i `10A`-hålet, då kortsluter du det
 du mäter så fort du går över till spänningsläge.
+
+**Kontrollera mätaren på sig själv först:** nudda ihop de två metallspetsarna, den
+ska pipa. Utan det vet du inte om "inget pip" betyder *ingen brygga* eller *fel
+ratt-läge*.
+
+**Grundregeln, och den enda du behöver minnas:**
+
+| Du mäter | Pip betyder |
+|---|---|
+| **Längs samma ledare** — två ändar av samma tråd, eller `+5V`-ö till `+5V`-ö | ✅ Bra, strömmen kommer fram |
+| **Mellan två olika ledare** — `+5V` mot `GND`, data mot `+5V` | ❌ Brygga |
+
+Två avläsningsfällor: **`1` eller `OL` ensamt** längst till vänster betyder *över
+mätområdet*, alltså **ingen** förbindelse — inte 1 ohm. Och ett **tal utan pip**
+(t.ex. 718 Ω) mellan data och `GND` är LEDens inbyggda skydd, helt normalt. Det
+är pipet som betyder brygga.
 
 **1. Kortslutning mellan `+5V` och `GND`.** USB **ur** kortet — resistansmätning
 på en strömsatt krets ger skräpvärden och kan skada mätaren. Ratten på `Ω` eller
