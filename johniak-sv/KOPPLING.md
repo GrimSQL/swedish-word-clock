@@ -129,6 +129,25 @@ med pilen åt vänster — alltså **roterade ett halvt varv i planet**.
 
 Rotera i planet, vänd inte på strippen. LEDsen ska fortfarande peka framåt.
 
+> ⚠️ **Att pilarna pekar åt olika håll är RÄTT, inte fel.** Grannrader ska alltid
+> peka åt var sitt håll — det är själva serpentinen. Ser du "flera lister åt fel
+> håll" är det nästan alltid det här mönstret du tittar på, och då är allt som
+> det ska.
+
+| Pilen pekar | Rader |
+|---|---|
+| **åt höger →** | 10, 8, 6, 4, 2 |
+| **åt vänster ←** | 9, 7, 5, 3, 1 |
+
+Ögat är ändå inte facit här. **Stapel-testet är det**: släck allt, tänd den
+vänstra LEDen i varje lödd rad (`99`, `88`, `77`, `66`, `55` …) i var sin färg.
+De ska bilda en lodrät linje i vänsterkanten. Hoppar en av dem över till
+högerkanten ligger just den raden bakvänd — och bara den.
+
+En rad som klarat stapel-testet är bevisad rätt oavsett hur pilen ser ut för
+ögat. Löd aldrig om en verifierad rad på en känsla.
+
+
 ---
 
 ## Steg för steg
