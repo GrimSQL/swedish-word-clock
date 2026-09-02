@@ -54,8 +54,16 @@ Presets skapas om med [`johniak-sv/tools/presets.py`](johniak-sv/tools/presets.p
 - [x] `packages/ordklockan.yaml`: rest_command för klockläget, `sensor.ordklockan_text`
       (aktuell fras), `binary_sensor.ordklockan_klocklage`
 - [x] `script.ordklockan_scen` — sätter preset OCH klockläge i ett anrop
-- [ ] Automationer: nattdimning, larmblink (röd puls), hemkomst-puls, tvätt-klar-skimmer
-      (följ HA-regeln: kategori + labels + mdi-ikon på alla nya automationer)
+- [x] `input_boolean.ordklockan_manuell` — manuell styrning vinner alltid över
+      automationerna. Kortets knappar går via script som tänder flaggan;
+      automationerna anropar tjänsterna direkt och rör den aldrig
+- [x] Automation: släck när huset larmas **borta** (skalskydd undantaget — då är
+      någon hemma). Nollställer också flaggan, så hemkomsten börjar rent
+- [x] Automation: Lugn kväll efter solnedgången, Klockläge i dagsljus
+- [x] Automation: släpp manuell styrning kl 04 som säkerhetsnät
+- [ ] Automationer kvar: larmblink (röd puls vid utlöst larm), hemkomst-puls,
+      tvätt-klar. Alla tre vill ha en **figur** nu när klockan kan visa ❗ och ✓,
+      inte bara en färg
 
 ## 5. Lovelace-dashboard
 - [x] Effektväljare som knappgrid, scenknappar (Klockläge / Party / Lugn kväll / Natt),

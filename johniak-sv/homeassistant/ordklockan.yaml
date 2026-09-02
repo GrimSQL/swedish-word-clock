@@ -23,6 +23,15 @@
 # samma fil ar inte ett fel i YAML - den sista vinner och den forsta forsvinner
 # tyst. Lagg till nya poster i blocken nedan, skapa aldrig ett andra block.
 
+input_boolean:
+  # Manuell styrning vinner over automationerna. Satts av knapparna pa kortet
+  # (via scripten, som alla har ett 'manuell'-falt som ar sant som default) och
+  # nollstalls nar huset larmas borta eller klockan 04. Utan den skulle
+  # solnedgangsautomationen sla over ett hjarta man precis valt.
+  ordklockan_manuell:
+    name: Ordklockan manuell styrning
+    icon: mdi:hand-back-right
+
 input_text:
   ordklockan_sensor:
     name: Ordklockan vald sensor

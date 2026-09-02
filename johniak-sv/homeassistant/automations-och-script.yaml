@@ -1,0 +1,370 @@
+# Ordklockan - automationer och script
+#
+# Exporterad kopia fran Home Assistant for versionshantering. Det har ar INTE
+# filen HA laser - den ligger i /config/automations.yaml och /config/scripts.yaml.
+# Redigera i HA, exportera hit igen.
+#
+# Overridemodellen: knapparna pa kortet gar via scripten, och scripten tander
+# input_boolean.ordklockan_manuell. Automationen 'automatiskt lage hemma' haller
+# sig undan medan den flaggan ar pa. Automationerna anropar darfor ALDRIG
+# scripten - de gar direkt pa rest_command och select, annars skulle de sla av
+# sig sjalva for all framtid.
+
+automation:
+- id: '1788374466850'
+  alias: Ordklockan – håll talet uppdaterat
+  description: När väggen visar ett tal (läge 'tal') skickas den valda sensorns värde varje minut, så
+    siffran inte fryser. Vilken sensor som visas ligger i input_text.ordklockan_sensor och sätts av script.ordklockan_visa_sensor.
+    Gör ingenting i något annat läge.
+  triggers:
+  - trigger: time_pattern
+    minutes: /1
+  conditions:
+  - condition: state
+    entity_id: sensor.ordklockan_lage
+    state: tal
+    note: Bara när väggen faktiskt visar ett tal — annars skulle vi slå sönder klock- eller figurläget
+      varje minut.
+  - condition: not
+    conditions:
+    - condition: state
+      entity_id: input_text.ordklockan_sensor
+      state:
+      - ''
+      - unknown
+      - unavailable
+    note: Ingen sensor vald ännu.
+  actions:
+  - action: rest_command.ordklockan_tal
+    data:
+      varde: '{{ states(states(''input_text.ordklockan_sensor'')) | float(0) | round(0) | int }}'
+  mode: single
+  max_exceeded: silent
+- id: '1788375442239'
+  alias: Ordklockan – släck när ingen är hemma
+  description: 'Släcker väggen när huset larmas BORTA. Gäller medvetet inte skalskydd (armed_home) — då
+    är någon hemma och ska ha sin klocka. Nollställer också den manuella flaggan: att lämna huset är den
+    naturliga punkten där ett handvalt hjärta slutar gälla, så att hemkomsten börjar rent. Det här är
+    den enda automationen som medvetet kör även under manuell styrning — en figur som brinner i ett tomt
+    hus är just det den ska förhindra.'
+  triggers:
+  - trigger: state
+    entity_id: alarm_control_panel.larmpanel_hall
+    to: armed_away
+  actions:
+  - action: light.turn_off
+    target:
+      entity_id: light.ordklockan
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.ordklockan_manuell
+  mode: single
+- id: '1788375460782'
+  alias: Ordklockan – automatiskt läge hemma
+  description: 'Håller väggen i klockläge när någon är hemma: ''Lugn kväll'' efter solnedången, ''Klockläge''
+    i dagsljus. Håller sig helt undan medan input_boolean.ordklockan_manuell är på, så att knapparna på
+    kortet alltid vinner. Flaggan släpps när huset larmas borta eller kl 04.'
+  triggers:
+  - trigger: state
+    entity_id: alarm_control_panel.larmpanel_hall
+    to:
+    - disarmed
+    - armed_home
+    id: hemma
+  - trigger: sun
+    event: sunset
+    id: solnedgang
+  - trigger: sun
+    event: sunrise
+    id: soluppgang
+  - trigger: state
+    entity_id: input_boolean.ordklockan_manuell
+    to: 'off'
+    id: manuell_slappt
+  - trigger: homeassistant
+    event: start
+    id: omstart
+  conditions:
+  - condition: state
+    entity_id: input_boolean.ordklockan_manuell
+    state: 'off'
+    note: Manuell styrning vinner. Knapparna på kortet går via script som tänder flaggan.
+  - condition: not
+    conditions:
+    - condition: state
+      entity_id: alarm_control_panel.larmpanel_hall
+      state: armed_away
+    note: Ingen hemma — då äger den andra automationen, som släcker.
+  actions:
+  - action: light.turn_on
+    target:
+      entity_id: light.ordklockan
+  - action: rest_command.ordklockan_lage
+    data:
+      lage: klocka
+    note: 'Direkt REST-anrop, INTE script.ordklockan_scen — det scriptet tänder den manuella flaggan och
+      skulle stänga av automationen för all framtid. Läget före presetet: WLED nollställer ''aktiv preset''
+      vid varje efterföljande tillståndsändring.'
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: sun.sun
+        state: below_horizon
+      sequence:
+      - action: select.select_option
+        target:
+          entity_id: select.ordklockan_preset
+        data:
+          option: Lugn kväll
+    default:
+    - action: select.select_option
+      target:
+        entity_id: select.ordklockan_preset
+      data:
+        option: Klockläge
+  - delay:
+      seconds: 1
+  - action: homeassistant.update_entity
+    target:
+      entity_id:
+      - sensor.ordklockan_text
+      - sensor.ordklockan_lage
+      - sensor.ordklockan_rutnat
+  mode: restart
+- id: '1788375472563'
+  alias: Ordklockan – släpp manuell styrning kl 04
+  description: 'Säkerhetsnät. Utan det skulle ett hjärta man tryckte på i tisdags ligga kvar i veckor
+    om huset aldrig larmas borta. Fyra på natten är den naturliga gränsen: ingen tittar, och morgonen
+    börjar i automatiskt läge.'
+  triggers:
+  - trigger: time
+    at: 04:00:00
+  conditions:
+  - condition: state
+    entity_id: input_boolean.ordklockan_manuell
+    state: 'on'
+  actions:
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.ordklockan_manuell
+    note: Släckningen triggar i sin tur 'automatiskt läge hemma', som sätter rätt preset för tiden på
+      dygnet.
+  mode: single
+
+script:
+ordklockan_scen:
+  alias: Ordklockan – scen
+  description: 'Väljer ett WLED-preset OCH sätter visningsläget. Båda behövs: WLED utesluter usermod-tillstånd
+    när en preset sparas (serializeState anropas med forPreset=true), så presetet ensamt kan aldrig växla
+    mellan ord, figur och ren effekt.'
+  icon: mdi:clock-digital
+  mode: restart
+  fields:
+    preset:
+      name: Preset
+      description: WLED-preset som ska väljas
+      required: true
+      selector:
+        select:
+          options:
+          - Klockläge
+          - Lugn kväll
+          - Natt
+          - Regnbågsklocka
+          - Norrskensklocka
+          - Hjärta
+          - Hjärtslag
+          - Stjärna
+          - Gran
+          - Julgran
+          - Eld
+          - Matrix
+          - Plasma
+          - Fyrverkeri
+          - Bläckfisk
+          - Svart hål
+          - Party
+    lage:
+      name: Läge
+      description: Vad matrisen ska visa. Ett fält, inte flera flaggor — två kan aldrig krocka.
+      required: true
+      selector:
+        select:
+          options:
+          - value: klocka
+            label: Klocka – tiden i ord
+          - value: hjarta
+            label: Hjärta
+          - value: stjarna
+            label: Stjärna
+          - value: gran
+            label: Gran
+          - value: av
+            label: Av – hela matrisen fri åt effekten
+  sequence:
+  - action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.ordklockan_manuell
+    note: Anvandaren har tagit over. Automationerna backar tills flaggan slapps - de anropar tjansterna
+      direkt i stallet for att ga via det har scriptet, just for att inte satta flaggan.
+  - action: light.turn_on
+    target:
+      entity_id: light.ordklockan
+    note: Presetet tänder inte självt om lampan står av.
+  - action: rest_command.ordklockan_lage
+    data:
+      lage: '{{ lage }}'
+    note: Måste ske FÖRE presetet. WLED nollställer 'aktiv preset' (ps = -1) vid varje efterföljande tillståndsändring,
+      så lägger vi REST-anropet sist tappar select.ordklockan_preset sitt värde och kortets markering
+      slocknar. Presetet i sin tur rör inte läget — nyckeln saknas i preset-JSON:en, och readFromJsonState
+      lämnar då värdet orört.
+  - action: select.select_option
+    target:
+      entity_id: select.ordklockan_preset
+    data:
+      option: '{{ preset }}'
+  - delay:
+      seconds: 1
+  - action: homeassistant.update_entity
+    target:
+      entity_id:
+      - sensor.ordklockan_text
+      - sensor.ordklockan_lage
+      - sensor.ordklockan_rutnat
+      - binary_sensor.ordklockan_klocklage
+    note: REST-sensorerna pollar var 15:e sekund — tvinga fram en avläsning så kortet uppdateras direkt.
+ordklockan_timer:
+  alias: Ordklockan – timer
+  description: 'Startar en nedräkning på väggen. Firmwaren tickar själv en gång per sekund, så det blir
+    inga hundra HTTP-anrop och nedräkningen fortsätter även om Home Assistant startar om. Displayen visar
+    det mest exakta som får plats i två siffror: sekunder så länge de ryms (till och med 99), annars minuter
+    uppåt avrundat.'
+  icon: mdi:timer-sand
+  mode: restart
+  fields:
+    minuter:
+      name: Minuter
+      required: true
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 99
+          mode: box
+    sekunder:
+      name: Sekunder
+      required: true
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 5999
+          mode: box
+      description: Läggs till minuterna. Får vara över 59 om du hellre anger allt i sekunder (kortets
+        knappar gör det).
+  sequence:
+  - action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.ordklockan_manuell
+    note: Anvandaren har tagit over. Automationerna backar tills flaggan slapps.
+  - action: light.turn_on
+    target:
+      entity_id: light.ordklockan
+  - action: rest_command.ordklockan_nedrakning
+    data:
+      varde: '{{ (minuter | int(0)) * 60 + (sekunder | int(0)) }}'
+  - delay:
+      seconds: 1
+  - action: homeassistant.update_entity
+    target:
+      entity_id:
+      - sensor.ordklockan_text
+      - sensor.ordklockan_lage
+      - sensor.ordklockan_rutnat
+      - sensor.ordklockan_nedrakning
+ordklockan_visa_sensor:
+  alias: Ordklockan – visa sensor
+  description: Visar en valfri sensors värde som två siffror på väggen, avrundat till heltal. Sparar valet
+    i input_text.ordklockan_sensor så att automationen 'Ordklockan – håll talet uppdaterat' kan hålla
+    siffran färsk. Område −99..99 — minustecknet får plats på kolumn 0-1 när siffrorna skjuts ett steg
+    åt höger.
+  icon: mdi:thermometer
+  mode: restart
+  fields:
+    sensor:
+      name: Sensor
+      description: Vilken sensor som ska visas
+      required: true
+      selector:
+        entity:
+          domain:
+          - sensor
+          - number
+          - input_number
+  sequence:
+  - action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.ordklockan_manuell
+    note: Anvandaren har tagit over. Automationerna backar tills flaggan slapps.
+  - action: input_text.set_value
+    target:
+      entity_id: input_text.ordklockan_sensor
+    data:
+      value: '{{ sensor }}'
+    note: Sparas så att uppdateringsautomationen vet vilken sensor som visas.
+  - action: light.turn_on
+    target:
+      entity_id: light.ordklockan
+  - action: rest_command.ordklockan_tal
+    data:
+      varde: '{{ states(sensor) | float(0) | round(0) | int }}'
+  - delay:
+      seconds: 1
+  - action: homeassistant.update_entity
+    target:
+      entity_id:
+      - sensor.ordklockan_text
+      - sensor.ordklockan_lage
+      - sensor.ordklockan_rutnat
+ordklockan_lage:
+  alias: Ordklockan – sätt läge
+  description: Sätter visningsläget OCH markerar att styrningen är manuell, så att automationerna håller
+    sig undan tills flaggan släpps. Används av figurknapparna på kortet. Automationer ska INTE använda
+    det här scriptet — de anropar rest_command.ordklockan_lage direkt, just för att inte sätta flaggan.
+  icon: mdi:shape
+  mode: restart
+  fields:
+    lage:
+      name: Läge
+      required: true
+      selector:
+        select:
+          options:
+          - klocka
+          - hjarta
+          - stjarna
+          - gran
+          - snoflinga
+          - katt
+          - blixt
+          - utrop
+          - av
+  sequence:
+  - action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.ordklockan_manuell
+    note: Användaren har tagit över. Automationerna backar tills flaggan släpps.
+  - action: light.turn_on
+    target:
+      entity_id: light.ordklockan
+  - action: rest_command.ordklockan_lage
+    data:
+      lage: '{{ lage }}'
+  - delay:
+      seconds: 1
+  - action: homeassistant.update_entity
+    target:
+      entity_id:
+      - sensor.ordklockan_text
+      - sensor.ordklockan_lage
+      - sensor.ordklockan_rutnat
