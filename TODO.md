@@ -34,6 +34,7 @@ tidslogiken där är samma som usermoden använder.
 - [x] Porta svenska ordtabellen till usermodens layout (rad/kolumn, inte LED-index)
 - [x] Konfigurera 2D-matris 11×10, serpentin, första LED nere till vänster
 - [x] Kuratera 12 presets — 5 klocklägen + 7 helmatriseffekter
+- [x] Exponera aktuell fras och tänd-mask i `/json/info` för Home Assistant
 - [x] OTA-flasha
 - [x] NTP + tidszon CET/CEST med automatisk sommartid
 
@@ -51,8 +52,9 @@ Presets skapas om med [`johniak-sv/tools/presets.py`](johniak-sv/tools/presets.p
 ## 5. Lovelace-dashboard
 - [x] Effektväljare som knappgrid, scenknappar (Klockläge / Party / Lugn kväll / Natt),
       ljusstyrka, palett, hastighet — i `lampor`-vyn, Viktors button-card-stil
-- [ ] Simulatorn som live-kort — visar exakt vad väggen visar (samma layoutkälla,
-      korskollad mot plasten). Snabbversion: iframe-kort med `index.html`
+- [x] Simulatorn som live-kort — ritar firmwarens **egen** mask (`u.OrdklockanRutnat`,
+      110 tecken i läsordning) via `sensor.ordklockan_rutnat`. Kortet duplicerar
+      alltså ingen ordtabell i JavaScript och kan inte säga emot väggen
 - [ ] Automations-togglar + ev. plats på floorplanen
 - [ ] WLED:s webb-UI som iframe-flik för finlir
 

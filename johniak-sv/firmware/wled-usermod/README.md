@@ -75,6 +75,21 @@ curl -X POST -H "Content-Type: application/json" -d '{"Ordklockan":{"on":true}}'
 
 och aktuell fras läses av på `/json/info` under `u.Ordklockan`.
 
+## Rutnätet till simulatorkortet
+
+`/json/info` innehåller också `u.OrdklockanRutnat` — **110 tecken, `1` = tänd
+cell, i läsordning** (rad 0 överst, kolumn 0 till vänster):
+
+```
+KLOCKAN ÄR SEX  ->  11111110011 00000000000 ... 00001110000 ...
+```
+
+Det är firmwarens egen mask, inte en härledning. Lovelace-kortet ritar den rakt
+av, vilket är hela poängen: kortet duplicerar ingen ordtabell i JavaScript och
+kan därför aldrig visa något annat än väggen. Är klockläget av rapporteras
+masken som helt tänd — då släcker `handleOverlayDraw` ingenting och hela
+matrisen lyser, vilket är den sanna bilden.
+
 ## Ändra layouten
 
 Ordtabellen i usermoden är rad/kolumn ur `LAYOUT` och `WORDS` i

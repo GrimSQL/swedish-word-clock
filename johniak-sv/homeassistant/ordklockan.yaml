@@ -5,7 +5,10 @@
 # forPreset=true, och da hoppas UsermodManager::addToJsonState over). Darfor
 # satter vi laget harifran i stallet, med ett REST-anrop mot /json/state.
 #
-# Scenknapparna i scripts.yaml gor bada delarna: valjer preset OCH satter laget.
+# Scen-scriptet (script.ordklockan_scen) gor bada delarna, och i ratt ordning:
+# laget FORST, presetet sen. WLED nollstaller "aktiv preset" vid varje
+# efterfoljande tillstandsandring, sa omvand ordning tommer
+# select.ordklockan_preset och slacker kortets markering.
 
 rest_command:
   ordklockan_ord_pa:
@@ -29,7 +32,18 @@ sensor:
     unique_id: ordklockan_text
     resource: "http://192.168.30.17/json/info"
     value_template: "{{ value_json.u.Ordklockan[0] }}"
-    scan_interval: 30
+    scan_interval: 15
+    timeout: 10
+
+  # 110 tecken, '1' = tand cell, i lasordning (rad 0 overst, kolumn 0 till
+  # vanster). Firmwarens EGEN mask, inte en gissning - simulatorkortet ritar
+  # den rakt av och kan darfor aldrig saga emot vaggen.
+  - platform: rest
+    name: Ordklockan rutnät
+    unique_id: ordklockan_rutnat
+    resource: "http://192.168.30.17/json/info"
+    value_template: "{{ value_json.u.OrdklockanRutnat[0] }}"
+    scan_interval: 15
     timeout: 10
 
 binary_sensor:

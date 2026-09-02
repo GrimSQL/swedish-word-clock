@@ -108,6 +108,22 @@ class SwedishWordClockUsermod : public Usermod
       true,  true,  true,  true,  true,  true,  true
     };
 
+    // Bara för /json/info — vad väggen säger, i klartext.
+    const char *blockText[12] = {
+      "", "FEM ÖVER", "TIO ÖVER", "KVART ÖVER", "TJUGO ÖVER", "FEM I HALV",
+      "HALV", "FEM ÖVER HALV", "TJUGO I", "KVART I", "TIO I", "FEM I"
+    };
+    const char *hourText[13] = {
+      "", "ETT", "TVÅ", "TRE", "FYRA", "FEM", "SEX",
+      "SJU", "ÅTTA", "NIO", "TIO", "ELVA", "TOLV"
+    };
+    char phrase[48] = "";
+
+    // 110 tecken, '1' = tand cell, i lasordning. Skickas i /json/info sa att
+    // Lovelace-kortet kan rita exakt samma bild som vaggen visar, utan att
+    // duplicera ordtabellen i JavaScript.
+    char grid[WC_CELLS + 1] = "";
+
     void lightWord(int8_t w)
     {
       if (w < 0 || w >= W_COUNT) return;
@@ -136,6 +152,15 @@ class SwedishWordClockUsermod : public Usermod
       if (blockNextHour[block]) h = (h % 12) + 1;
 
       lightWord((int8_t)(W_H1 + (h - 1)));
+
+      if (blockText[block][0] == '\0') {
+        snprintf(phrase, sizeof(phrase), "KLOCKAN ÄR %s", hourText[h]);
+      } else {
+        snprintf(phrase, sizeof(phrase), "KLOCKAN ÄR %s %s", blockText[block], hourText[h]);
+      }
+
+      for (uint16_t i = 0; i < WC_CELLS; i++) grid[i] = cellOn[i] ? '1' : '0';
+      grid[WC_CELLS] = '\0';
     }
 
   public:
@@ -176,6 +201,59 @@ class SwedishWordClockUsermod : public Usermod
           if (!cellOn[y * WC_WIDTH + x]) strip.setPixelColorXY(x, y, RGBW32(0, 0, 0, 0));
         }
       }
+    }
+
+    /*
+     * Klockläget i /json/state gör det styrbart utifrån — från Home Assistant,
+     * från REST, och det följer med när man sparar en preset. Inställningen i
+     * konfigen nedan är bara startvärdet vid boot.
+     *
+     *   {"Ordklockan":{"on":true}}   -> ord, effekten lyser genom bokstäverna
+     *   {"Ordklockan":{"on":false}}  -> hela matrisen fri åt effekten
+     */
+    void addToJsonState(JsonObject& root)
+    {
+      JsonObject um = root[F("Ordklockan")];
+      if (um.isNull()) um = root.createNestedObject(F("Ordklockan"));
+      um[F("on")] = usermodActive;
+    }
+
+    void readFromJsonState(JsonObject& root)
+    {
+      JsonObject um = root[F("Ordklockan")];
+      if (um.isNull()) return;
+
+      bool v;
+      if (getJsonValue(um[F("on")], v)) {
+        if (v != usermodActive) {
+          usermodActive = v;
+          firstRun = true;   // tvinga omritning direkt, vänta inte på minutbyte
+        }
+      }
+    }
+
+    /*
+     * Visar aktuell fras i /json/info -> "u" -> Ordklockan. Home Assistant kan
+     * plocka upp den som en sensor, så dashboarden kan visa vad väggen säger.
+     */
+    void addToJsonInfo(JsonObject& root)
+    {
+      JsonObject user = root[F("u")];
+      if (user.isNull()) user = root.createNestedObject(F("u"));
+
+      JsonArray arr = user.createNestedArray(F("Ordklockan"));
+      arr.add(usermodActive ? (phrase[0] ? phrase : "vantar pa tid") : "av");
+
+      // Ar klocklaget av slacker handleOverlayDraw ingenting, alltsa lyser hela
+      // matrisen. Da ar en helt tand mask den sanna bilden.
+      char out[WC_CELLS + 1];
+      for (uint16_t i = 0; i < WC_CELLS; i++) {
+        out[i] = usermodActive ? (grid[i] ? grid[i] : '0') : '1';
+      }
+      out[WC_CELLS] = '\0';
+
+      JsonArray g = user.createNestedArray(F("OrdklockanRutnat"));
+      g.add(out);
     }
 
     void addToConfig(JsonObject& root)
