@@ -34,6 +34,10 @@ PRESETS = [
     (13, "Hjärta",         "hjarta",   0,  0, 120, 128, 128, (255,   0,  40)),
     (14, "Stjärna",        "stjarna",  0,  0, 120, 128, 128, (255, 200,  60)),
     (15, "Hjärtslag",      "hjarta",   2,  0, 150,  90, 128, (255,   0,  40)),
+    (16, "Gran",           "gran",     0,  0, 130, 128, 128, (  0, 190,  70)),
+    # Glitter (fx 87) over gront = vita gnistor i granen, alltsa julgransljus.
+    # Samma effekt var fel for hjartat men ar precis ratt har.
+    (17, "Julgran",        "gran",    87,  0, 140,  60, 110, (  0, 190,  70)),
     # --- hela matrisen ----------------------------------------------------
     (6,  "Eld",            "av",     149,  8, 140, 130, 140, (255, 160,   0)),
     (7,  "Matrix",         "av",     153,  0, 120, 130, 128, (  0, 255,   0)),

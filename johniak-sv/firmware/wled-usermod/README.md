@@ -78,6 +78,7 @@ självt.
 | `klocka` | tiden i ord |
 | `hjarta` | ett hjärta |
 | `stjarna` | en stjärna |
+| `gran` | en gran |
 | `av` | ingenting maskas — hela matrisen är fri åt effekten |
 
 ```bash
@@ -99,7 +100,9 @@ const char *heart[WC_HEIGHT] = {
 Så en ny figur är tio rader text, inga index att räkna. Formen syns i koden.
 
 Eftersom usermoden bara *släcker* tar figuren färg av effekten som körs — ett
-hjärta kan vara solitt rött lika gärna som plasma eller eld.
+hjärta kan vara solitt rött lika gärna som plasma eller eld. Presetet `Julgran`
+utnyttjar det: `Glitter` (fx 87) över grönt ger vita gnistor i granen, alltså
+julgransbelysning. Samma effekt var fel för hjärtat och rätt här.
 
 Aktuell text läses av på `/json/info` under `u.Ordklockan`, och aktuellt läge på
 `/json/state` under `Ordklockan.mode`.

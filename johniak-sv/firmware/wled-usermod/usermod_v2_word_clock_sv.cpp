@@ -31,6 +31,7 @@
  *     {"Ordklockan":{"mode":"klocka"}}    tiden i ord
  *     {"Ordklockan":{"mode":"hjarta"}}    ett hjärta
  *     {"Ordklockan":{"mode":"stjarna"}}   en stjärna
+ *     {"Ordklockan":{"mode":"gran"}}      en gran
  *     {"Ordklockan":{"mode":"av"}}        hela matrisen fri åt effekten
  *
  * `{"on":true|false}` finns kvar som alias mot klocka/av.
@@ -46,7 +47,7 @@ class SwedishWordClockUsermod : public Usermod
     static const uint8_t  WC_HEIGHT = 10;
     static const uint16_t WC_CELLS  = WC_WIDTH * WC_HEIGHT;   // 110
 
-    enum : uint8_t { MODE_OFF = 0, MODE_CLOCK = 1, MODE_HEART = 2, MODE_STAR = 3 };
+    enum : uint8_t { MODE_OFF = 0, MODE_CLOCK = 1, MODE_HEART = 2, MODE_STAR = 3, MODE_TREE = 4 };
 
     // --- inställningar (Usermod Settings) --------------------------------
     bool bootActive       = false;   // startläge: klocka om true, annars av
@@ -145,6 +146,21 @@ class SwedishWordClockUsermod : public Usermod
       "..........."
     };
 
+    // Tvavaningsgran med stam. Rad 4 ar insnorningen mellan vaningarna - utan
+    // den blir det en triangel, inte en gran.
+    const char *tree[WC_HEIGHT] = {
+      ".....#.....",
+      "....###....",
+      "...#####...",
+      "..#######..",
+      "...#####...",
+      "..#######..",
+      ".#########.",
+      "###########",
+      ".....#.....",
+      "....###...."
+    };
+
     // Bara för /json/info — vad väggen säger, i klartext.
     const char *blockText[12] = {
       "", "FEM ÖVER", "TIO ÖVER", "KVART ÖVER", "TJUGO ÖVER", "FEM I HALV",
@@ -230,6 +246,7 @@ class SwedishWordClockUsermod : public Usermod
       firstRun = true;      // rita om direkt, vänta inte på minutbyte
       if      (mode == MODE_HEART) drawShape(heart, "HJÄRTA");
       else if (mode == MODE_STAR)  drawShape(star,  "STJÄRNA");
+      else if (mode == MODE_TREE)  drawShape(tree,  "GRAN");
       else if (mode == MODE_OFF)   { clearCells(); phrase[0] = '\0'; publishGrid(); }
     }
 
@@ -284,6 +301,7 @@ class SwedishWordClockUsermod : public Usermod
       um[F("on")] = (mode != MODE_OFF);
       um[F("mode")] = (mode == MODE_HEART) ? "hjarta"
                     : (mode == MODE_STAR)  ? "stjarna"
+                    : (mode == MODE_TREE)  ? "gran"
                     : (mode == MODE_CLOCK) ? "klocka" : "av";
     }
 
@@ -296,6 +314,7 @@ class SwedishWordClockUsermod : public Usermod
       if (m) {
         if      (!strcmp(m, "hjarta"))  setMode(MODE_HEART);
         else if (!strcmp(m, "stjarna")) setMode(MODE_STAR);
+        else if (!strcmp(m, "gran"))    setMode(MODE_TREE);
         else if (!strcmp(m, "klocka"))  setMode(MODE_CLOCK);
         else if (!strcmp(m, "av"))      setMode(MODE_OFF);
         return;                       // mode vinner över on
