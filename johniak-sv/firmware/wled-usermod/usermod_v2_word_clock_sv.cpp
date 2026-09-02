@@ -23,15 +23,21 @@
  * bufferten skickas ut på bussen, utifrån 2D-panelinställningen i WLED. En
  * tabell med FYSISKA LED-index (som words_sv.h innehåller) är alltså fel rum
  * här och ger ord utspridda över hela plattan.
- *
- * Rad/kolumn är dessutom hur layouten faktiskt definieras i
- * johniak-sv/generate.js (WORDS = {row, c0, c1}) och hur simulatorn i
- * index.html ritar. Ändra layouten där, kör om generate.js, uppdatera nedan.
  * ---------------------------------------------------------------------------
  *
- * Precis som den tyska SLÄCKER den här usermoden bara de LEDs som inte ingår i
- * aktuell tid. Effekten som körs målar bokstäverna, så alla WLED:s 2D-effekter
- * fungerar fortfarande.
+ * LÄGEN. Ett fält, inte flera flaggor — två booleans kan stå i konflikt, ett
+ * läge kan inte. Sätts via /json/state så att Home Assistant kan styra det:
+ *
+ *     {"Ordklockan":{"mode":"klocka"}}    tiden i ord
+ *     {"Ordklockan":{"mode":"hjarta"}}    ett hjärta
+ *     {"Ordklockan":{"mode":"stjarna"}}   en stjärna
+ *     {"Ordklockan":{"mode":"av"}}        hela matrisen fri åt effekten
+ *
+ * `{"on":true|false}` finns kvar som alias mot klocka/av.
+ *
+ * Usermoden SLÄCKER bara de LEDs som inte ingår i bilden. Effekten som körs
+ * målar resten, så alla WLED:s 2D-effekter fungerar fortfarande — ett hjärta
+ * kan lika gärna vara plasma som solitt rött.
  */
 class SwedishWordClockUsermod : public Usermod
 {
@@ -40,11 +46,14 @@ class SwedishWordClockUsermod : public Usermod
     static const uint8_t  WC_HEIGHT = 10;
     static const uint16_t WC_CELLS  = WC_WIDTH * WC_HEIGHT;   // 110
 
+    enum : uint8_t { MODE_OFF = 0, MODE_CLOCK = 1, MODE_HEART = 2, MODE_STAR = 3 };
+
     // --- inställningar (Usermod Settings) --------------------------------
-    bool usermodActive    = false;
+    bool bootActive       = false;   // startläge: klocka om true, annars av
     bool displayKlockanAr = true;
 
     // --- körtid -----------------------------------------------------------
+    uint8_t mode = MODE_OFF;
     unsigned long lastPoll = 0;
     int  lastMinute = -1;
     bool firstRun   = true;
@@ -108,6 +117,34 @@ class SwedishWordClockUsermod : public Usermod
       true,  true,  true,  true,  true,  true,  true
     };
 
+    // Figurerna. En rad per matrisrad, '#' = tänd cell. Ritas exakt som de står
+    // här, så formen går att ändra utan att räkna om ett enda index.
+    const char *heart[WC_HEIGHT] = {
+      "...........",
+      "..##...##..",
+      ".####.####.",
+      ".#########.",
+      ".#########.",
+      "..#######..",
+      "...#####...",
+      "....###....",
+      ".....#.....",
+      "..........."
+    };
+
+    const char *star[WC_HEIGHT] = {
+      "...........",
+      ".....#.....",
+      "....###....",
+      "###########",
+      ".#########.",
+      "..#######..",
+      "..#######..",
+      ".###...###.",
+      ".##.....##.",
+      "..........."
+    };
+
     // Bara för /json/info — vad väggen säger, i klartext.
     const char *blockText[12] = {
       "", "FEM ÖVER", "TIO ÖVER", "KVART ÖVER", "TJUGO ÖVER", "FEM I HALV",
@@ -121,8 +158,19 @@ class SwedishWordClockUsermod : public Usermod
 
     // 110 tecken, '1' = tand cell, i lasordning. Skickas i /json/info sa att
     // Lovelace-kortet kan rita exakt samma bild som vaggen visar, utan att
-    // duplicera ordtabellen i JavaScript.
+    // duplicera nagon tabell i JavaScript.
     char grid[WC_CELLS + 1] = "";
+
+    void clearCells()
+    {
+      for (uint16_t i = 0; i < WC_CELLS; i++) cellOn[i] = false;
+    }
+
+    void publishGrid()
+    {
+      for (uint16_t i = 0; i < WC_CELLS; i++) grid[i] = cellOn[i] ? '1' : '0';
+      grid[WC_CELLS] = '\0';
+    }
 
     void lightWord(int8_t w)
     {
@@ -134,10 +182,23 @@ class SwedishWordClockUsermod : public Usermod
       }
     }
 
-    // hour12: 1..12
-    void updateMask(uint8_t hour12, uint8_t minutes)
+    void drawShape(const char **shape, const char *label)
     {
-      for (uint16_t i = 0; i < WC_CELLS; i++) cellOn[i] = false;
+      clearCells();
+      for (uint8_t y = 0; y < WC_HEIGHT; y++) {
+        for (uint8_t x = 0; x < WC_WIDTH; x++) {
+          if (shape[y][x] == '#') cellOn[y * WC_WIDTH + x] = true;
+        }
+      }
+      strncpy(phrase, label, sizeof(phrase) - 1);
+      phrase[sizeof(phrase) - 1] = '\0';
+      publishGrid();
+    }
+
+    // hour12: 1..12
+    void drawTime(uint8_t hour12, uint8_t minutes)
+    {
+      clearCells();
 
       if (displayKlockanAr) {
         lightWord(W_KLOCKAN);
@@ -159,20 +220,33 @@ class SwedishWordClockUsermod : public Usermod
         snprintf(phrase, sizeof(phrase), "KLOCKAN ÄR %s %s", blockText[block], hourText[h]);
       }
 
-      for (uint16_t i = 0; i < WC_CELLS; i++) grid[i] = cellOn[i] ? '1' : '0';
-      grid[WC_CELLS] = '\0';
+      publishGrid();
+    }
+
+    void setMode(uint8_t m)
+    {
+      if (m == mode) return;
+      mode = m;
+      firstRun = true;      // rita om direkt, vänta inte på minutbyte
+      if      (mode == MODE_HEART) drawShape(heart, "HJÄRTA");
+      else if (mode == MODE_STAR)  drawShape(star,  "STJÄRNA");
+      else if (mode == MODE_OFF)   { clearCells(); phrase[0] = '\0'; publishGrid(); }
     }
 
   public:
 
     void setup()
     {
-      for (uint16_t i = 0; i < WC_CELLS; i++) cellOn[i] = false;
+      clearCells();
+      publishGrid();
+      mode = bootActive ? MODE_CLOCK : MODE_OFF;
+      if (mode == MODE_CLOCK) firstRun = true;
     }
 
     void loop()
     {
-      if (!usermodActive) return;
+      // Hjärtat beror inte på tiden och ritades redan när läget sattes.
+      if (mode != MODE_CLOCK) return;
 
       if (!firstRun && millis() - lastPoll < 5000) return;
       lastPoll = millis();
@@ -185,16 +259,16 @@ class SwedishWordClockUsermod : public Usermod
 
       lastMinute = m;
       firstRun   = false;
-      updateMask(hourFormat12(localTime), (uint8_t)m);
+      drawTime(hourFormat12(localTime), (uint8_t)m);
     }
 
     /*
      * Anropas efter att effekten målat, precis före show(). Vi släcker allt som
-     * inte ingår i tiden och låter effekten lysa genom orden.
+     * inte ingår i bilden och låter effekten lysa genom det som är kvar.
      */
     void handleOverlayDraw()
     {
-      if (!usermodActive) return;
+      if (mode == MODE_OFF) return;
 
       for (uint8_t y = 0; y < WC_HEIGHT; y++) {
         for (uint8_t x = 0; x < WC_WIDTH; x++) {
@@ -203,19 +277,14 @@ class SwedishWordClockUsermod : public Usermod
       }
     }
 
-    /*
-     * Klockläget i /json/state gör det styrbart utifrån — från Home Assistant,
-     * från REST, och det följer med när man sparar en preset. Inställningen i
-     * konfigen nedan är bara startvärdet vid boot.
-     *
-     *   {"Ordklockan":{"on":true}}   -> ord, effekten lyser genom bokstäverna
-     *   {"Ordklockan":{"on":false}}  -> hela matrisen fri åt effekten
-     */
     void addToJsonState(JsonObject& root)
     {
       JsonObject um = root[F("Ordklockan")];
       if (um.isNull()) um = root.createNestedObject(F("Ordklockan"));
-      um[F("on")] = usermodActive;
+      um[F("on")] = (mode != MODE_OFF);
+      um[F("mode")] = (mode == MODE_HEART) ? "hjarta"
+                    : (mode == MODE_STAR)  ? "stjarna"
+                    : (mode == MODE_CLOCK) ? "klocka" : "av";
     }
 
     void readFromJsonState(JsonObject& root)
@@ -223,18 +292,22 @@ class SwedishWordClockUsermod : public Usermod
       JsonObject um = root[F("Ordklockan")];
       if (um.isNull()) return;
 
-      bool v;
-      if (getJsonValue(um[F("on")], v)) {
-        if (v != usermodActive) {
-          usermodActive = v;
-          firstRun = true;   // tvinga omritning direkt, vänta inte på minutbyte
-        }
+      const char *m = um[F("mode")];
+      if (m) {
+        if      (!strcmp(m, "hjarta"))  setMode(MODE_HEART);
+        else if (!strcmp(m, "stjarna")) setMode(MODE_STAR);
+        else if (!strcmp(m, "klocka"))  setMode(MODE_CLOCK);
+        else if (!strcmp(m, "av"))      setMode(MODE_OFF);
+        return;                       // mode vinner över on
       }
+
+      bool v;
+      if (getJsonValue(um[F("on")], v)) setMode(v ? MODE_CLOCK : MODE_OFF);
     }
 
     /*
-     * Visar aktuell fras i /json/info -> "u" -> Ordklockan. Home Assistant kan
-     * plocka upp den som en sensor, så dashboarden kan visa vad väggen säger.
+     * /json/info -> "u": aktuell text och tändmasken. Masken är firmwarens
+     * egen, så simulatorkortet i Home Assistant kan aldrig säga emot väggen.
      */
     void addToJsonInfo(JsonObject& root)
     {
@@ -242,13 +315,13 @@ class SwedishWordClockUsermod : public Usermod
       if (user.isNull()) user = root.createNestedObject(F("u"));
 
       JsonArray arr = user.createNestedArray(F("Ordklockan"));
-      arr.add(usermodActive ? (phrase[0] ? phrase : "vantar pa tid") : "av");
+      arr.add(mode == MODE_OFF ? "av" : (phrase[0] ? phrase : "vantar pa tid"));
 
-      // Ar klocklaget av slacker handleOverlayDraw ingenting, alltsa lyser hela
-      // matrisen. Da ar en helt tand mask den sanna bilden.
+      // Är läget av släcker handleOverlayDraw ingenting, alltså lyser hela
+      // matrisen. Då är en helt tänd mask den sanna bilden.
       char out[WC_CELLS + 1];
       for (uint16_t i = 0; i < WC_CELLS; i++) {
-        out[i] = usermodActive ? (grid[i] ? grid[i] : '0') : '1';
+        out[i] = (mode == MODE_OFF) ? '1' : (grid[i] ? grid[i] : '0');
       }
       out[WC_CELLS] = '\0';
 
@@ -259,12 +332,13 @@ class SwedishWordClockUsermod : public Usermod
     void addToConfig(JsonObject& root)
     {
       JsonObject top = root.createNestedObject(F("Ordklockan"));
-      top[F("active")]          = usermodActive;
+      top[F("active")]          = bootActive;
       top[F("visa KLOCKAN AR")] = displayKlockanAr;
     }
 
     void appendConfigData()
     {
+      oappend(F("addInfo('Ordklockan:active', 1, 'Startlage vid boot: klocka om pa, annars av');"));
       oappend(F("addInfo('Ordklockan:visa KLOCKAN AR', 1, 'Har KLOCKAN AR alltid tant');"));
     }
 
@@ -273,7 +347,7 @@ class SwedishWordClockUsermod : public Usermod
       JsonObject top = root[F("Ordklockan")];
       bool configComplete = !top.isNull();
 
-      configComplete &= getJsonValue(top[F("active")], usermodActive);
+      configComplete &= getJsonValue(top[F("active")], bootActive);
       configComplete &= getJsonValue(top[F("visa KLOCKAN AR")], displayKlockanAr);
 
       return configComplete;

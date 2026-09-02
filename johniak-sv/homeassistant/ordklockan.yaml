@@ -1,32 +1,49 @@
 # Ordklockan — svensk word clock (WLED + egen usermod)
 #
-# WLED:s presets kan inte sjalva vaxla klocklaget: WLED utesluter
+# WLED:s presets kan inte sjalva vaxla visningslaget: WLED utesluter
 # usermod-tillstand nar en preset sparas (serializeState anropas med
 # forPreset=true, och da hoppas UsermodManager::addToJsonState over). Darfor
 # satter vi laget harifran i stallet, med ett REST-anrop mot /json/state.
 #
-# Scen-scriptet (script.ordklockan_scen) gor bada delarna, och i ratt ordning:
-# laget FORST, presetet sen. WLED nollstaller "aktiv preset" vid varje
-# efterfoljande tillstandsandring, sa omvand ordning tommer
-# select.ordklockan_preset och slacker kortets markering.
+# Laget ar ETT falt, inte flera flaggor - tva booleans hade kunnat sta i
+# konflikt (klocka OCH hjarta samtidigt), ett lage kan inte.
+#
+#   klocka   tiden i ord
+#   hjarta   ett hjarta
+#   stjarna  en stjarna
+#   av       hela matrisen fri at effekten
+#
+# Scen-scriptet (script.ordklockan_scen) satter laget FORST och presetet sen.
+# WLED nollstaller "aktiv preset" vid varje efterfoljande tillstandsandring, sa
+# omvand ordning tommer select.ordklockan_preset och slacker kortets markering.
 
 rest_command:
+  # Ett kommando for alla lagen. Anropas med data: {lage: hjarta}
+  ordklockan_lage:
+    url: "http://192.168.30.17/json/state"
+    method: POST
+    content_type: "application/json"
+    payload: '{"Ordklockan":{"mode":"{{ lage }}"}}'
+    timeout: 10
+
+  # Behalls som genvagar - anvands av snabbknapparna pa kortet.
   ordklockan_ord_pa:
     url: "http://192.168.30.17/json/state"
     method: POST
     content_type: "application/json"
-    payload: '{"Ordklockan":{"on":true}}'
+    payload: '{"Ordklockan":{"mode":"klocka"}}'
     timeout: 10
 
   ordklockan_ord_av:
     url: "http://192.168.30.17/json/state"
     method: POST
     content_type: "application/json"
-    payload: '{"Ordklockan":{"on":false}}'
+    payload: '{"Ordklockan":{"mode":"av"}}'
     timeout: 10
 
 sensor:
   # Vad vaggen faktiskt sager just nu, direkt fran usermoden.
+  # "KLOCKAN AR TJUGO OVER SJU" / "HJARTA" / "STJARNA" / "av"
   - platform: rest
     name: Ordklockan text
     unique_id: ordklockan_text
@@ -46,8 +63,17 @@ sensor:
     scan_interval: 15
     timeout: 10
 
+  # Aktuellt visningslage: klocka / hjarta / stjarna / av
+  - platform: rest
+    name: Ordklockan läge
+    unique_id: ordklockan_lage
+    resource: "http://192.168.30.17/json/state"
+    value_template: "{{ value_json.Ordklockan.mode }}"
+    scan_interval: 15
+    timeout: 10
+
 binary_sensor:
-  # Ar klocklaget aktivt? Anvands av kortet for att visa ratt tillstand.
+  # Visar den nagot alls? True for klocka, hjarta och stjarna.
   - platform: rest
     name: Ordklockan klocklage
     unique_id: ordklockan_klocklage

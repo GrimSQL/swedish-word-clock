@@ -33,7 +33,8 @@ tidslogiken där är samma som usermoden använder.
 - [x] Custom-bygg av WLED 16.0.1 med egen usermod
 - [x] Porta svenska ordtabellen till usermodens layout (rad/kolumn, inte LED-index)
 - [x] Konfigurera 2D-matris 11×10, serpentin, första LED nere till vänster
-- [x] Kuratera 12 presets — 5 klocklägen + 7 helmatriseffekter
+- [x] Kuratera 15 presets — 5 klocklägen, 3 figurer, 7 helmatriseffekter
+- [x] Figurlägen: hjärta och stjärna, som ASCII-bitmaps i usermoden
 - [x] Exponera aktuell fras och tänd-mask i `/json/info` för Home Assistant
 - [x] OTA-flasha
 - [x] NTP + tidszon CET/CEST med automatisk sommartid

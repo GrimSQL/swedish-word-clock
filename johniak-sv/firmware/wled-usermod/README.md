@@ -67,13 +67,42 @@ Under *Config → Usermods → Ordklockan*:
 | `active` | Startvärde vid boot. Löpande styrning sker via `/json/state` |
 | `visa KLOCKAN AR` | Håll `KLOCKAN ÄR` alltid tänt |
 
-Klockläget växlas i drift med
+## Visningslägen
+
+Ett fält, inte flera flaggor. Två booleans (klocka + hjärta) hade kunnat vara
+påslagna samtidigt och slåss om masken; ett läge kan inte stå i konflikt med sig
+självt.
+
+| Läge | Visar |
+|---|---|
+| `klocka` | tiden i ord |
+| `hjarta` | ett hjärta |
+| `stjarna` | en stjärna |
+| `av` | ingenting maskas — hela matrisen är fri åt effekten |
 
 ```bash
-curl -X POST -H "Content-Type: application/json" -d '{"Ordklockan":{"on":true}}' http://192.168.30.17/json/state
+curl -X POST -H "Content-Type: application/json" -d '{"Ordklockan":{"mode":"hjarta"}}' http://192.168.30.17/json/state
 ```
 
-och aktuell fras läses av på `/json/info` under `u.Ordklockan`.
+`{"on":true|false}` finns kvar som alias mot `klocka`/`av`.
+
+Figurerna definieras som ASCII i källkoden, en rad per matrisrad:
+
+```cpp
+const char *heart[WC_HEIGHT] = {
+  "...........",
+  "..##...##..",
+  ".####.####.",
+  ...
+```
+
+Så en ny figur är tio rader text, inga index att räkna. Formen syns i koden.
+
+Eftersom usermoden bara *släcker* tar figuren färg av effekten som körs — ett
+hjärta kan vara solitt rött lika gärna som plasma eller eld.
+
+Aktuell text läses av på `/json/info` under `u.Ordklockan`, och aktuellt läge på
+`/json/state` under `Ordklockan.mode`.
 
 ## Rutnätet till simulatorkortet
 

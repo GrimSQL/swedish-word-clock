@@ -19,22 +19,29 @@ import urllib.request
 
 HOST = "192.168.30.17"
 
-# (slot, namn, klocklage, fx, palett, ljusstyrka, hastighet, intensitet, primarfarg)
+# (slot, namn, lage, fx, palett, ljusstyrka, hastighet, intensitet, primarfarg)
+# lage: "klocka" | "hjarta" | "stjarna" | "av"  -- usermodens visningslage.
+# OBS: laget sparas INTE i presetet (WLED utesluter usermod-tillstand nar en
+# preset sparas). Det satts separat harifran, och i drift av HA-scriptet.
 PRESETS = [
     # --- klocklage pa -----------------------------------------------------
-    (1,  "Klockläge",      True,   0,  0, 128, 128, 128, (255, 214, 170)),
-    (2,  "Lugn kväll",     True,   0,  0,  55, 128, 128, (255, 150,  50)),
-    (3,  "Natt",           True,   0,  0,  12, 128, 128, (255,  40,   0)),
-    (4,  "Regnbågsklocka", True, 180, 11, 110,  60, 128, (255, 160,   0)),
-    (5,  "Norrskensklocka",True, 174,  0, 100,  70, 128, (255, 160,   0)),
+    (1,  "Klockläge",      "klocka",   0,  0, 128, 128, 128, (255, 214, 170)),
+    (2,  "Lugn kväll",     "klocka",   0,  0,  55, 128, 128, (255, 150,  50)),
+    (3,  "Natt",           "klocka",   0,  0,  12, 128, 128, (255,  40,   0)),
+    (4,  "Regnbågsklocka", "klocka", 180, 11, 110,  60, 128, (255, 160,   0)),
+    (5,  "Norrskensklocka","klocka", 174,  0, 100,  70, 128, (255, 160,   0)),
+    # --- figurer ----------------------------------------------------------
+    (13, "Hjärta",         "hjarta",   0,  0, 120, 128, 128, (255,   0,  40)),
+    (14, "Stjärna",        "stjarna",  0,  0, 120, 128, 128, (255, 200,  60)),
+    (15, "Hjärtslag",      "hjarta",  87,  8, 140, 200, 128, (255,   0,  40)),
     # --- hela matrisen ----------------------------------------------------
-    (6,  "Eld",            False,149,  8, 140, 130, 140, (255, 160,   0)),
-    (7,  "Matrix",         False,153,  0, 120, 130, 128, (  0, 255,   0)),
-    (8,  "Plasma",         False,178, 11, 130, 128, 128, (255, 160,   0)),
-    (9,  "Fyrverkeri",     False, 42,  6, 150, 130, 128, (255, 160,   0)),
-    (10, "Bläckfisk",      False,126, 11, 130, 110, 128, (255, 160,   0)),
-    (11, "Svart hål",      False,183,  0, 130, 128, 128, (255, 160,   0)),
-    (12, "Party",          False,167,  6, 200, 160, 180, (255, 160,   0)),
+    (6,  "Eld",            "av",     149,  8, 140, 130, 140, (255, 160,   0)),
+    (7,  "Matrix",         "av",     153,  0, 120, 130, 128, (  0, 255,   0)),
+    (8,  "Plasma",         "av",     178, 11, 130, 128, 128, (255, 160,   0)),
+    (9,  "Fyrverkeri",     "av",      42,  6, 150, 130, 128, (255, 160,   0)),
+    (10, "Bläckfisk",      "av",     126, 11, 130, 110, 128, (255, 160,   0)),
+    (11, "Svart hål",      "av",     183,  0, 130, 128, 128, (255, 160,   0)),
+    (12, "Party",          "av",     167,  6, 200, 160, 180, (255, 160,   0)),
 ]
 
 
@@ -58,12 +65,12 @@ def get(path):
         return json.loads(r.read().decode())
 
 
-def build(slot, name, clock, fx, pal, bri, sx, ix, col):
+def build(slot, name, lage, fx, pal, bri, sx, ix, col):
     state = {
         "on": True,
         "bri": bri,
         "transition": 7,
-        "Ordklockan": {"on": clock},
+        "Ordklockan": {"mode": lage},
         "seg": [{
             "id": 0, "fx": fx, "pal": pal, "sx": sx, "ix": ix,
             "frz": False, "on": True, "bri": 255,
@@ -87,14 +94,14 @@ def main():
     if a.list:
         for k, v in sorted(get("/presets.json").items(), key=lambda x: int(x[0])):
             if isinstance(v, dict) and v.get("n"):
-                wc = v.get("Ordklockan", {}).get("on")
+                wc = v.get("Ordklockan", {}).get("mode")
                 seg = (v.get("seg") or [{}])[0]
-                print(f"{k:>3}  {v['n']:<16} klocka={str(wc):<5} fx={seg.get('fx')} bri={v.get('bri')}")
+                print(f"{k:>3}  {v['n']:<16} lage={str(wc):<8} fx={seg.get('fx')} bri={v.get('bri')}")
         return
 
     for p in PRESETS:
         build(*p)
-        print(f"  {p[0]:>2}  {p[1]:<16} klocka={'på ' if p[2] else 'av '} fx={p[3]}")
+        print(f"  {p[0]:>2}  {p[1]:<16} lage={p[2]:<8} fx={p[3]}")
 
     print(f"\n{len(PRESETS)} presets skrivna till {HOST}")
 
