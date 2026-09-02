@@ -37,6 +37,10 @@ tidslogiken där är samma som usermoden använder.
 - [x] Exponera aktuell fras och tänd-mask i `/json/info` för Home Assistant
 - [x] OTA-flasha
 - [x] NTP + tidszon CET/CEST med automatisk sommartid
+- [x] Boot-preset `Klockläge` — klockan kommer tillbaka likadan efter strömavbrott
+- [x] Lokal NTP-källa: NAS:en (`192.168.1.30`, DSM:s NTP-server). Krävde en ny
+      brandväggsregel `AUTO IoT till NAS NTP` i GrimSQL/udm-firewall — UDM:en kör
+      ingen egen NTP-server, verifierat med SNTP-probe mot alla tre VLAN
 
 Källkod och byggguide: [`johniak-sv/firmware/wled-usermod/`](johniak-sv/firmware/wled-usermod/README.md).
 Presets skapas om med [`johniak-sv/tools/presets.py`](johniak-sv/tools/presets.py).
@@ -63,3 +67,6 @@ Presets skapas om med [`johniak-sv/tools/presets.py`](johniak-sv/tools/presets.p
   den; är den första åtgärden om flimmer dyker upp.
 - **`ordtest.py` mot `--all`** har aldrig körts hela varvet med plattan på.
   Värt att göra en gång för att se alla tolv femminutersblock.
+- **WLED backar av 5 minuter** efter varje misslyckad NTP-uppslagning. Testa
+  alltid NTP-ändringar med en omstart — annars mäter du backoffen och drar fel
+  slutsats om nätverket.
