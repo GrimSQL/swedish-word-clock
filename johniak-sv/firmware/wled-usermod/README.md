@@ -125,8 +125,14 @@ fungerar utan att något klipps. Värden utanför −99…99 klampas.
 Home Assistant behöver inte skicka nittionio anrop. Den fortsätter dessutom om
 HA startas om. Sekunder kvar syns i `/json/state` under `Ordklockan.varde`.
 
-Två siffror räcker inte till MM:SS, så över en minut visas **minuter uppåt
-avrundat** och under en minut **sekunder**. Det är hur en äggklocka beter sig.
+Två siffror räcker inte till MM:SS, så displayen visar det mest exakta som får
+plats: **sekunder så länge de ryms i två siffror**, annars minuter uppåt
+avrundat.
+
+Gränsen går vid **99, inte vid 60**. Med 60 skulle en nedräkning från 99 s visa
+`2` — riktigt enligt regeln, fel enligt förväntan. En femminuterstimer visar
+alltså `5, 4, 3, 2` och växlar sedan till sekunder vid 99 och räknar ner till
+noll.
 
 Eftersom usermoden bara *släcker* tar figuren färg av effekten som körs — ett
 hjärta kan vara solitt rött lika gärna som plasma eller eld. Presetet `Julgran`

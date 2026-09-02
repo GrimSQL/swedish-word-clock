@@ -264,11 +264,21 @@ class SwedishWordClockUsermod : public Usermod
       publishGrid();
     }
 
-    // Två siffror räcker inte till MM:SS. Över en minut visas minuter uppåt
-    // avrundat, under en minut sekunder. Det är hur en äggklocka beter sig.
+    /*
+     * Två siffror räcker inte till MM:SS, så displayen visar det mest exakta
+     * som får plats: SEKUNDER så länge de ryms i två siffror, annars minuter
+     * uppåt avrundat.
+     *
+     * Gränsen går vid 99, inte vid 60. Med 60 skulle en nedräkning från 99 s
+     * visa "2" (ceil(99/60)) i stället för att räkna 99, 98, 97 - vilket är
+     * riktigt enligt regeln men fel enligt förväntan.
+     *
+     * En femminuterstimer visar alltså 5, 4, 3, 2 och växlar sedan till
+     * sekunder vid 99 och räknar ner till noll.
+     */
     int countdownDigits() const
     {
-      if (remaining >= 60) { int m = (remaining + 59) / 60; return m > 99 ? 99 : m; }
+      if (remaining > 99) { int m = (remaining + 59) / 60; return m > 99 ? 99 : m; }
       return remaining < 0 ? 0 : remaining;
     }
 
