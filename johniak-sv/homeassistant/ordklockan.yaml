@@ -1,0 +1,43 @@
+# Ordklockan — svensk word clock (WLED + egen usermod)
+#
+# WLED:s presets kan inte sjalva vaxla klocklaget: WLED utesluter
+# usermod-tillstand nar en preset sparas (serializeState anropas med
+# forPreset=true, och da hoppas UsermodManager::addToJsonState over). Darfor
+# satter vi laget harifran i stallet, med ett REST-anrop mot /json/state.
+#
+# Scenknapparna i scripts.yaml gor bada delarna: valjer preset OCH satter laget.
+
+rest_command:
+  ordklockan_ord_pa:
+    url: "http://192.168.30.17/json/state"
+    method: POST
+    content_type: "application/json"
+    payload: '{"Ordklockan":{"on":true}}'
+    timeout: 10
+
+  ordklockan_ord_av:
+    url: "http://192.168.30.17/json/state"
+    method: POST
+    content_type: "application/json"
+    payload: '{"Ordklockan":{"on":false}}'
+    timeout: 10
+
+sensor:
+  # Vad vaggen faktiskt sager just nu, direkt fran usermoden.
+  - platform: rest
+    name: Ordklockan text
+    unique_id: ordklockan_text
+    resource: "http://192.168.30.17/json/info"
+    value_template: "{{ value_json.u.Ordklockan[0] }}"
+    scan_interval: 30
+    timeout: 10
+
+binary_sensor:
+  # Ar klocklaget aktivt? Anvands av kortet for att visa ratt tillstand.
+  - platform: rest
+    name: Ordklockan klocklage
+    unique_id: ordklockan_klocklage
+    resource: "http://192.168.30.17/json/state"
+    value_template: "{{ value_json.Ordklockan.on }}"
+    scan_interval: 30
+    timeout: 10
