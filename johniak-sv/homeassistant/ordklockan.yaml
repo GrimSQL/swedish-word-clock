@@ -8,17 +8,29 @@
 # Laget ar ETT falt, inte flera flaggor - tva booleans hade kunnat sta i
 # konflikt (klocka OCH hjarta samtidigt), ett lage kan inte.
 #
-#   klocka   tiden i ord
-#   hjarta   ett hjarta
-#   stjarna  en stjarna
-#   av       hela matrisen fri at effekten
+#   klocka                          tiden i ord
+#   hjarta stjarna gran snoflinga   figurer
+#   katt blixt utrop
+#   tal          + varde            tvasiffrig display, -99..99
+#   nedrakning   + varde            sekunder, firmwaren tickar sjalv
+#   av                              hela matrisen fri at effekten
 #
-# Scen-scriptet (script.ordklockan_scen) satter laget FORST och presetet sen.
-# WLED nollstaller "aktiv preset" vid varje efterfoljande tillstandsandring, sa
-# omvand ordning tommer select.ordklockan_preset och slacker kortets markering.
+# Scen-scriptet satter laget FORST och presetet sen. WLED nollstaller "aktiv
+# preset" vid varje efterfoljande tillstandsandring, sa omvand ordning tommer
+# select.ordklockan_preset och slacker kortets markering.
+#
+# OBS: allt av samma sort maste ligga i ETT block. Tva rest_command:-nycklar i
+# samma fil ar inte ett fel i YAML - den sista vinner och den forsta forsvinner
+# tyst. Lagg till nya poster i blocken nedan, skapa aldrig ett andra block.
+
+input_text:
+  ordklockan_sensor:
+    name: Ordklockan vald sensor
+    icon: mdi:thermometer
+    max: 255
 
 rest_command:
-  # Ett kommando for alla lagen. Anropas med data: {lage: hjarta}
+  # Visningslage. Anropas med data: {lage: hjarta}
   ordklockan_lage:
     url: "http://192.168.30.17/json/state"
     method: POST
@@ -26,7 +38,7 @@ rest_command:
     payload: '{"Ordklockan":{"mode":"{{ lage }}"}}'
     timeout: 10
 
-  # Behalls som genvagar - anvands av snabbknapparna pa kortet.
+  # Genvagar for snabbknapparna pa kortet.
   ordklockan_ord_pa:
     url: "http://192.168.30.17/json/state"
     method: POST
@@ -41,9 +53,25 @@ rest_command:
     payload: '{"Ordklockan":{"mode":"av"}}'
     timeout: 10
 
+  # Statiskt tal, -99..99. Temperatur och andra matvarden.
+  ordklockan_tal:
+    url: "http://192.168.30.17/json/state"
+    method: POST
+    content_type: "application/json"
+    payload: '{"Ordklockan":{"mode":"tal","varde":{{ varde | int(0) }}}}'
+    timeout: 10
+
+  # Nedrakning i sekunder. Firmwaren tickar sjalv en gang per sekund, sa det
+  # blir inga 99 HTTP-anrop och den fortsatter aven om HA startar om.
+  ordklockan_nedrakning:
+    url: "http://192.168.30.17/json/state"
+    method: POST
+    content_type: "application/json"
+    payload: '{"Ordklockan":{"mode":"nedrakning","varde":{{ varde | int(0) }}}}'
+    timeout: 10
+
 sensor:
   # Vad vaggen faktiskt sager just nu, direkt fran usermoden.
-  # "KLOCKAN AR TJUGO OVER SJU" / "HJARTA" / "STJARNA" / "av"
   - platform: rest
     name: Ordklockan text
     unique_id: ordklockan_text
@@ -53,8 +81,8 @@ sensor:
     timeout: 10
 
   # 110 tecken, '1' = tand cell, i lasordning (rad 0 overst, kolumn 0 till
-  # vanster). Firmwarens EGEN mask, inte en gissning - simulatorkortet ritar
-  # den rakt av och kan darfor aldrig saga emot vaggen.
+  # vanster). Firmwarens EGEN mask - simulatorkortet ritar den rakt av och kan
+  # darfor aldrig saga emot vaggen.
   - platform: rest
     name: Ordklockan rutnät
     unique_id: ordklockan_rutnat
@@ -63,7 +91,7 @@ sensor:
     scan_interval: 15
     timeout: 10
 
-  # Aktuellt visningslage: klocka / hjarta / stjarna / av
+  # Aktuellt visningslage.
   - platform: rest
     name: Ordklockan läge
     unique_id: ordklockan_lage
@@ -72,8 +100,18 @@ sensor:
     scan_interval: 15
     timeout: 10
 
+  # Sekunder kvar i nedrakningen. Gor det mojligt att trigga nar den nar noll.
+  - platform: rest
+    name: Ordklockan nedräkning
+    unique_id: ordklockan_nedrakning
+    resource: "http://192.168.30.17/json/state"
+    value_template: "{{ value_json.Ordklockan.varde | default(0) }}"
+    unit_of_measurement: "s"
+    scan_interval: 10
+    timeout: 10
+
 binary_sensor:
-  # Visar den nagot alls? True for klocka, hjarta och stjarna.
+  # Visar den nagot alls? True for klocka, figurer och tal.
   - platform: rest
     name: Ordklockan klocklage
     unique_id: ordklockan_klocklage

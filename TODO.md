@@ -34,7 +34,10 @@ tidslogiken där är samma som usermoden använder.
 - [x] Porta svenska ordtabellen till usermodens layout (rad/kolumn, inte LED-index)
 - [x] Konfigurera 2D-matris 11×10, serpentin, första LED nere till vänster
 - [x] Kuratera 17 presets — 5 klocklägen, 5 figurer, 7 helmatriseffekter
-- [x] Figurlägen: hjärta, stjärna och gran, som ASCII-bitmaps i usermoden
+- [x] Figurlägen: hjärta, stjärna, gran, snöflinga, katt, blixt, utropstecken
+- [x] Sifferdisplay — timer, temperatur och nedräkning är samma tvåsiffriga läge
+- [x] `script.ordklockan_timer`, `script.ordklockan_visa_sensor` och
+      automationen som håller talet färskt
 - [x] Exponera aktuell fras och tänd-mask i `/json/info` för Home Assistant
 - [x] OTA-flasha
 - [x] NTP + tidszon CET/CEST med automatisk sommartid

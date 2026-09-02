@@ -79,6 +79,12 @@ självt.
 | `hjarta` | ett hjärta |
 | `stjarna` | en stjärna |
 | `gran` | en gran |
+| `snoflinga` | en snöflinga |
+| `katt` | ett kattansikte |
+| `blixt` | en blixt |
+| `utrop` | ett utropstecken |
+| `tal` | tvåsiffrig display, −99…99 (kräver `varde`) |
+| `nedrakning` | nedräkning i sekunder (kräver `varde`) |
 | `av` | ingenting maskas — hela matrisen är fri åt effekten |
 
 ```bash
@@ -97,7 +103,30 @@ const char *heart[WC_HEIGHT] = {
   ...
 ```
 
-Så en ny figur är tio rader text, inga index att räkna. Formen syns i koden.
+Så en ny figur är tio rader text plus en rad i `SHAPES`. Inga index att räkna,
+och formen syns i koden.
+
+## Siffror
+
+Timer, temperatur och nedräkning är samma sak i firmwaren: **en tvåsiffrig
+display**. Siffrorna är 4 breda och 7 höga, så två får plats bredvid varandra på
+elva kolumner med en kolumns mellanrum.
+
+```bash
+curl ... -d '{"Ordklockan":{"mode":"tal","varde":-15}}'
+```
+
+Negativa tal skjuter siffrorna ett steg åt höger och lägger minustecknet på
+kolumn 0–1. Det går jämnt ut på elva kolumner, vilket är varför minusgrader
+fungerar utan att något klipps. Värden utanför −99…99 klampas.
+
+**Nedräkningen tickar i firmwaren**, inte över nätet. `{"mode":"nedrakning",
+"varde":300}` startar fem minuter; ESP32:n räknar ner en gång per sekund och
+Home Assistant behöver inte skicka nittionio anrop. Den fortsätter dessutom om
+HA startas om. Sekunder kvar syns i `/json/state` under `Ordklockan.varde`.
+
+Två siffror räcker inte till MM:SS, så över en minut visas **minuter uppåt
+avrundat** och under en minut **sekunder**. Det är hur en äggklocka beter sig.
 
 Eftersom usermoden bara *släcker* tar figuren färg av effekten som körs — ett
 hjärta kan vara solitt rött lika gärna som plasma eller eld. Presetet `Julgran`
