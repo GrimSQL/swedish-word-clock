@@ -1,0 +1,73 @@
+diff --git a/wled00/src/dependencies/toki/Toki.h b/wled00/src/dependencies/toki/Toki.h
+index 0e849d3..0550631 100644
+--- a/wled00/src/dependencies/toki/Toki.h
++++ b/wled00/src/dependencies/toki/Toki.h
+@@ -57,12 +57,22 @@ class Toki {
+     uint32_t unix = 0;
+     TickT tick = TickT::inactive;
+     uint8_t timeSrc = TOKI_TS_NONE;
++#ifdef ARDUINO_ARCH_ESP32
++    portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
++    #define TOKI_ENTER_CRITICAL() portENTER_CRITICAL(&mux)
++    #define TOKI_EXIT_CRITICAL()  portEXIT_CRITICAL(&mux)
++#else
++    #define TOKI_ENTER_CRITICAL()
++    #define TOKI_EXIT_CRITICAL()
++#endif
+ 
+   public:
+     void setTime(Time t, uint8_t timeSource = TOKI_TS_MS) {
++      TOKI_ENTER_CRITICAL();
+       fullSecondMillis = millis() - t.ms;
+       unix = t.sec;
+       timeSrc = timeSource;
++      TOKI_EXIT_CRITICAL();
+     }
+ 
+     void setTime(uint32_t sec, uint16_t ms=TOKI_NO_MS_ACCURACY, uint8_t timeSource = TOKI_TS_MS) {
+@@ -87,14 +97,40 @@ class Toki {
+       return {unix, (uint16_t)frac};
+     }
+ 
++    /*
++     * Rolls unix forward to the current second.
++     *
++     * On ESP32 this is called from TWO tasks: the Arduino loop (handleTime())
++     * and the AsyncTCP task (/json -> serializeInfo() -> getTimeString() ->
++     * updateLocalTime()). The old body did an unguarded read-modify-write of
++     * fullSecondMillis in a loop. Interleave the two and one update is lost:
++     * fullSecondMillis ends up AHEAD of millis(), the next unsigned subtraction
++     * underflows to ~2^32 ms, and the loop spends 4.29 million iterations
++     * pushing the clock 49 days 17:02:47 into the future. Two of those overnight
++     * is a clock 99 days fast that still ticks at exactly the right rate.
++     *
++     * Three changes: a critical section so the update cannot be lost, a signed
++     * delta so an ahead-of-millis() fullSecondMillis realigns instead of
++     * wrapping, and division instead of a loop so no arithmetic slip can ever
++     * cost 4.29 million iterations again.
++     */
+     uint16_t millisecond() {
+-      uint32_t ms = millis() - fullSecondMillis;
+-      while (ms > 999) {
+-        ms -= 1000;
+-        fullSecondMillis += 1000;
+-        unix++;
++      TOKI_ENTER_CRITICAL();
++      int32_t delta = (int32_t)(millis() - fullSecondMillis);
++      if (delta < 0) {           //ahead of millis(): impossible as elapsed time
++        fullSecondMillis = millis();
++        TOKI_EXIT_CRITICAL();
++        return 0;
++      }
++      uint32_t ms = (uint32_t)delta;
++      if (ms > 999) {
++        uint32_t secs = ms / 1000;
++        ms -= secs * 1000;
++        fullSecondMillis += secs * 1000;
++        unix += secs;
+         if (tick == TickT::inactive) tick = TickT::marked; //marked, will be active on next loop
+       }
++      TOKI_EXIT_CRITICAL();
+       return ms;
+     }
+ 

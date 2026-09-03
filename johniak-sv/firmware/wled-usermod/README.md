@@ -30,6 +30,66 @@ som `../words_sv.h` innehåller — sprider orden över hela plattan.
 `if (!forPreset)`. Klockläget sätts därför från Home Assistant i stället, med ett
 REST-anrop mot `/json/state`. Se `packages/ordklockan.yaml` i HA-konfigen.
 
+## Patch i WLED-kärnan: Toki är inte trådsäker
+
+**Måste läggas på igen efter varje ny WLED-klon.** Utan den går klockan fel med
+jämna mellanrum, och felet är svårt att se: den tappar inte en sekunds takt, den
+byter bara utgångspunkt.
+
+`Toki::millisecond()` (`wled00/src/dependencies/toki/Toki.h`) rullar `unix`
+framåt till nuvarande sekund. På ESP32 anropas den från **två tasks** — Arduino-
+loopen via `handleTime()` och AsyncTCP-tasken via `/json` → `serializeInfo()` →
+`getTimeString()` → `updateLocalTime()`. Originalet gör en oskyddad
+läs-ändra-skriv i en loop:
+
+```cpp
+uint32_t ms = millis() - fullSecondMillis;
+while (ms > 999) { ms -= 1000; fullSecondMillis += 1000; unix++; }
+```
+
+Krockar taskarna tappas en `+= 1000`. Då hamnar `fullSecondMillis` **före**
+`millis()`, nästa subtraktion underflödar till ~2^32 ms, och while-loopen lägger
+på **49 dygn 17:02:47** i ett svep. Natten till 3 sep 2026 hände det två gånger:
+väggen låg 8 589 934 s = exakt 2 × 2^32 ms fel. Eftersom ordklockan är
+12-timmars såg det ut som ett fullt rimligt klockslag — 15:40 lyser som
+`TJUGO I FYRA`. Och eftersom enheten NTP-synkar var 11,7:e timme stod felet kvar
+hela natten.
+
+Vad som triggar det här är dashboarden: två REST-sensorer pollar `/json/info`
+var 15:e sekund och HA:s WLED-integration håller en WebSocket öppen. Varje
+sådant anrop går in i Toki från fel task.
+
+Patchen ligger i [`toki-threadsafe.patch`](toki-threadsafe.patch) och läggs på
+med `git apply` från WLED-klonens rot. Tre ändringar i `millisecond()`, plus
+samma lås i `setTime()`:
+
+| Ändring | Varför |
+|---|---|
+| `portMUX` kring uppdateringen | uppdateringen kan inte tappas |
+| `int32_t delta`, negativ ⇒ ställ om | en `fullSecondMillis` före `millis()` är omöjlig som förfluten tid — ställ om i stället för att wrappa |
+| division i stället för loop | ett aritmetiskt snedsteg får aldrig kosta 4,29 miljoner varv igen |
+
+En riktig `millis()`-rollover räknas fortfarande som förfluten tid — det är
+modulär aritmetik och `delta` blir positiv.
+
+Verifiera patchen på datorn, utan hårdvara. Testet ligger i
+[`../../tools/toki-test/`](../../tools/toki-test/) och **inte** här bredvid —
+allt i den här katalogen kopieras in i WLED-bygget, och en `main()` plus en
+`Arduino.h`-stubbe där hade sabbat kompileringen:
+
+```bash
+cd johniak-sv/tools/toki-test
+cp <WLED-klonen>/wled00/src/dependencies/toki/Toki.h .
+g++ -std=c++17 -O1 -Wall -I. -o test_toki test_toki.cpp && ./test_toki
+```
+
+Testet kör originalkoden bredvid den patchade och visar hoppet den gör:
+`unix +4294966 s = 49.7103 days`. Alla fem kontroller ska bli PASS.
+
+Home Assistant har dessutom ett skyddsnät oavsett firmware: automationen
+*Ordklockan – rätta tiden om den glidit* jämför `sensor.ordklockan_klocka` med
+HA:s tid var femte minut och skickar rätt tid om de skiljer mer än en minut.
+
 ## Bygga och flasha
 
 WLED-klonen ligger **utanför** det här repot, i
@@ -40,6 +100,7 @@ git clone --depth 1 --branch v16.0.1 https://github.com/wled/WLED.git
 cd WLED
 cp -r <detta repo>/johniak-sv/firmware/wled-usermod usermods/usermod_v2_word_clock_sv
 cp usermods/usermod_v2_word_clock_sv/platformio_override.ini .
+git apply usermods/usermod_v2_word_clock_sv/toki-threadsafe.patch
 pio run -e ordklockan
 ```
 

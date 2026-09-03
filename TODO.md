@@ -61,6 +61,12 @@ Presets skapas om med [`johniak-sv/tools/presets.py`](johniak-sv/tools/presets.p
       någon hemma). Nollställer också flaggan, så hemkomsten börjar rent
 - [x] Automation: Lugn kväll efter solnedgången, Klockläge i dagsljus
 - [x] Automation: släpp manuell styrning kl 04 som säkerhetsnät
+- [x] Automation: rätta tiden om den glidit. WLED:s `Toki::millisecond()`
+      räknade upp sekunder utan lås trots att den anropas från både
+      Arduino-loopen och AsyncTCP-tasken — en tappad uppdatering flyttade
+      klockan exakt 49 dygn 17:02:47 framåt, två gånger natten till 3 sep 2026.
+      Firmwaren är patchad (`toki-threadsafe.patch`), automationen är nätet
+      under: enheten NTP-synkar bara var 11,7:e timme
 - [ ] Automationer kvar: larmblink (röd puls vid utlöst larm), hemkomst-puls,
       tvätt-klar. Alla tre vill ha en **figur** nu när klockan kan visa ❗ och ✓,
       inte bara en färg

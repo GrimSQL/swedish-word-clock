@@ -79,6 +79,17 @@ rest_command:
     payload: '{"Ordklockan":{"mode":"nedrakning","varde":{{ varde | int(0) }}}}'
     timeout: 10
 
+  # Skjuter in HA:s tid i vaggen. WLED:s setTimeFromAPI slanger anropet nar
+  # enheten redan gar ratt - den returnerar tidigt om tidskallan ar NTP och
+  # skillnaden ar under 60 s - sa i normaldrift ar det har en no-op. Anvands av
+  # automationen 'ratta tiden om den glidit'.
+  ordklockan_tid:
+    url: "http://192.168.30.17/json/state"
+    method: POST
+    content_type: "application/json"
+    payload: '{"time":{{ now().timestamp() | int }}}'
+    timeout: 10
+
 sensor:
   # Vad vaggen faktiskt sager just nu, direkt fran usermoden.
   - platform: rest
@@ -117,6 +128,20 @@ sensor:
     value_template: "{{ value_json.Ordklockan.varde | default(0) }}"
     unit_of_measurement: "s"
     scan_interval: 10
+    timeout: 10
+
+  # Enhetens EGEN klocka, lokal tid, formatet "2026-9-3, 07:14:31" (utan
+  # nollutfyllnad - strptime %m/%d klarar det). Finns for att kunna se att
+  # vaggen gar ratt: WLED:s Toki racknade upp sekunder i tva tradar utan las,
+  # och en tappad uppdatering flyttade klockan exakt 49 dygn 17:02:47 framat.
+  # Eftersom ordklockan ar 12-timmars syns ett sadant hopp som ett fullt rimligt
+  # klockslag - det gar bara att upptacka genom att jamfora med HA:s tid.
+  - platform: rest
+    name: Ordklockan klocka
+    unique_id: ordklockan_klocka
+    resource: "http://192.168.30.17/json/info"
+    value_template: "{{ value_json.time }}"
+    scan_interval: 60
     timeout: 10
 
 binary_sensor:

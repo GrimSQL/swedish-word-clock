@@ -150,6 +150,37 @@ automation:
     note: Släckningen triggar i sin tur 'automatiskt läge hemma', som sätter rätt preset för tiden på
       dygnet.
   mode: single
+- id: '1788412543255'
+  alias: Ordklockan – rätta tiden om den glidit
+  description: 'Skyddsnät. WLED:s Toki::millisecond() räknade upp sekunder utan lås trots att den anropas
+    från både Arduino-loopen och AsyncTCP-tasken (varje /json-anrop går den vägen). En tappad uppdatering
+    lämnar fullSecondMillis före millis(), nästa subtraktion underflödar och klockan hoppar exakt 49 dygn
+    17:02:47 framåt — natten till 3 sep 2026 hände det två gånger och väggen låg 99 dygn fel utan att
+    tappa en sekunds takt. Firmwaren är patchad, men enheten NTP-synkar bara var 11,7:e timme, så utan
+    det här skulle en glidning av vilken orsak som helst stå kvar till nästa dygn. Och eftersom ordklockan
+    är 12-timmars ser ett hopp ut som ett fullt rimligt klockslag: 15:40 lyser som TJUGO I FYRA.'
+  triggers:
+  - trigger: time_pattern
+    minutes: /5
+  conditions:
+  - condition: template
+    value_template: >-
+      {% set d = strptime(states('sensor.ordklockan_klocka'), '%Y-%m-%d, %H:%M:%S', none) %}
+      {{ d is not none and ((now().timestamp() - as_timestamp(d)) | abs) > 60 }}
+    note: Enheten rapporterar lokal tid i samma tidszon som HA, så en naiv jämförelse räcker. strptime
+      med default 'none' fångar unknown/unavailable — då är villkoret falskt och ingenting skickas.
+  actions:
+  - action: rest_command.ordklockan_tid
+    note: Skickar bara HA:s tid. WLED ignorerar den om enheten redan går rätt, så anropet är ofarligt
+      även om villkoret skulle råka slå fel.
+  - delay:
+      seconds: 2
+  - action: homeassistant.update_entity
+    target:
+      entity_id: sensor.ordklockan_klocka
+    note: REST-sensorn pollar var 60:e sekund — läs om direkt så nästa körning inte ser den gamla tiden
+      och skickar en gång till.
+  mode: single
 
 script:
 ordklockan_scen:
