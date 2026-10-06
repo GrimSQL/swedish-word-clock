@@ -1,2 +1,6 @@
 # Byggs om lokalt av graphify-hooken vid varje commit - stod för nästan allt diffbrus i git status.
 graphify-out/
+wled-ordklocka/
+brag-output/
+__pycache__/
+*.pyc
