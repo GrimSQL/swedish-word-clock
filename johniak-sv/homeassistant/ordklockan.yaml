@@ -38,6 +38,42 @@ input_text:
     icon: mdi:thermometer
     max: 255
 
+rest:
+  # Vaggens FAKTISKA pixlar - 110 farger ur WLED:s live-peek, det enda som
+  # visar vad effekterna gor. Masken racker inte: den sager vad USERMODEN
+  # ritar, inte vad vaggen lyser med. I lage "av" maskerar usermoden ingenting
+  # och publicerar en helt tand mask, sa kortet ritade hela griden medan Eld i
+  # verkligheten tande 53 celler. Elva av sjutton presets kor en effekt och
+  # gick inte att aterge med mask + en farg.
+  #
+  # serveLiveLeds laser strip.getPixelColor() for maxWidth x maxHeight i
+  # LASORDNING - samma indexrum som OrdklockanRutnat, ingen serpentin att
+  # rakna om. Kraver -D WLED_ENABLE_JSONLIVE i bygget; utan den svarar
+  # endpointen {"error":4}.
+  #
+  # MODERN rest:, inte "sensor: - platform: rest". Den gamla plattformen
+  # struntade i scan_interval: 1 och pollade var 15:e sekund anda - matt i
+  # recordern: tre bildrutor 20:09:50, 20:10:06, 20:10:21. Den har formen
+  # anvander en DataUpdateCoordinator och haller takten.
+  #
+  # Fargerna ligger i ATTRIBUTET leds, inte i state: 110 x 6 tecken spranger
+  # HA:s 255-teckengrans for states. State ar antalet tanda celler - kort, och
+  # det racker for att button-card ska rita om.
+  #
+  # Utesluten ur recorder i configuration.yaml: en pollning per sekund ger
+  # annars ~40k rader om dygnet plus ~900 byte attributdata per rad.
+  - resource: "http://192.168.30.17/json/live"
+    scan_interval: 1
+    timeout: 5
+    sensor:
+      - name: "Ordklockan pixlar"
+        unique_id: ordklockan_pixlar
+        icon: mdi:grid
+        unit_of_measurement: "px"
+        value_template: "{{ value_json.leds | reject('eq', '000000') | list | count }}"
+        json_attributes:
+          - leds
+
 rest_command:
   # Visningslage. Anropas med data: {lage: hjarta}
   ordklockan_lage:

@@ -77,6 +77,16 @@ Presets skapas om med [`johniak-sv/tools/presets.py`](johniak-sv/tools/presets.p
 - [x] Simulatorn som live-kort — ritar firmwarens **egen** mask (`u.OrdklockanRutnat`,
       110 tecken i läsordning) via `sensor.ordklockan_rutnat`. Kortet duplicerar
       alltså ingen ordtabell i JavaScript och kan inte säga emot väggen
+- [x] Kortet speglar väggens **faktiska pixlar** via `/json/live`
+      (`sensor.ordklockan_pixlar`, 110 färger i attributet `leds`, en pollning
+      per sekund). Masken räckte inte: den säger vad usermoden ritar, inte vad
+      väggen lyser med. I läge `av` maskerar usermoden ingenting och publicerar
+      en helt tänd mask — masken sa 110 tända celler medan Eld i verkligheten
+      tände 53. Elva av sjutton presets kör en effekt och gick inte att återge
+      med mask + en färg. Noteringen ovan om att kortet "inte kan säga emot
+      väggen" gällde bokstäverna, inte ljuset
+- [x] Knapparnas accentfärg följer väggens färg i stället för fast bärnsten,
+      med läsbarhetsvakt för ljust tema
 - [ ] Automations-togglar + ev. plats på floorplanen
 - [ ] WLED:s webb-UI som iframe-flik för finlir
 

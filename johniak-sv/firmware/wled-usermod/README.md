@@ -30,6 +30,41 @@ som `../words_sv.h` innehåller — sprider orden över hela plattan.
 `if (!forPreset)`. Klockläget sätts därför från Home Assistant i stället, med ett
 REST-anrop mot `/json/state`. Se `packages/ordklockan.yaml` i HA-konfigen.
 
+## Live-pixlar: `/json/live`
+
+Masken i `/json/info` säger vad **usermoden** ritar, inte vad väggen lyser med.
+Skillnaden är inte kosmetisk: i läge `av` maskerar usermoden ingenting och
+publicerar med flit en helt tänd mask, så ett kort som ritar masken visar 110
+tända celler medan Eld i verkligheten bara tänder de nedersta raderna. Mätt på
+hårdvaran: masken sa 110, live-datan sa 53.
+
+Elva av sjutton presets kör en effekt och går alltså inte att återge med mask
+och en färg. `/json/live` ger de faktiska 110 färgerna:
+
+```bash
+curl http://192.168.30.17/json/live
+# {"leds":["806B55","806B55",...,"000000"],"n":1}
+```
+
+Två saker gör den lätt att konsumera:
+
+**Läsordning, inte LED-ordning.** `serveLiveLeds` läser
+`strip.getPixelColor(i)` för `maxWidth × maxHeight` — samma indexrum som
+`OrdklockanRutnat` och som usermodens ordtabell. Ingen serpentin att räkna om.
+(Se indexrums-noten överst i usermoden; det är samma fälla.)
+
+**Men färgerna är skalade med global ljusstyrka.** `Natt` kör `bri 12`, så
+`rgb(255,40,0)` kommer ut som `0C0200`. Den som ritar dem måste normalisera mot
+bildrutans starkaste kanal, annars blir kortet nästan svart. Lyft aldrig mörka
+pixlar var för sig — då tänds glöd som knappt syns på väggen upp som hela celler.
+
+Endpointen kräver `-D WLED_ENABLE_JSONLIVE`; utan den svarar den `{"error":4}`
+(`ERR_NOT_IMPL`). Flaggan ligger i `platformio_override.ini` med motivering.
+
+I Home Assistant pollar `sensor.ordklockan_pixlar` den en gång per sekund och
+lägger färgerna i attributet `leds` — inte i state, där 110 × 6 tecken spränger
+255-teckengränsen. Sensorn är utesluten ur recorder i `configuration.yaml`.
+
 ## Patch i WLED-kärnan: Toki är inte trådsäker
 
 **Måste läggas på igen efter varje ny WLED-klon.** Utan den går klockan fel med
