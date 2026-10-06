@@ -45,17 +45,49 @@ Utdata:
 |---|---|---|
 | `out/topshell_sv_body.stl` | Front + cellgaller i ett (187×179×12) | SVART (opak) |
 | `out/topshell_sv_letters.stl` | Bokstäverna, fyller fronten (2,5 mm djup) | **TRANSPARENT** |
-| `out/backplate_sv.stl` | Bakplatta med M3-hål + tratt-krok för vägg | SVART |
+| `out/backplate_sv.stl` | Bakplatta: 12,5 mm ram, ESP32-bay, tratt-krok | SVART |
 | `out/backplate_sv_markers.stl` | Strip-markeringsband, 10 st i plattans stripyta | **VIT/kontrast** |
 | `out/preview.svg` | Visuell kontroll av layouten | — |
+| `out/topshell_walls.svg` | Skalets väggar bakifrån: kabelslitsar + stripurtag | — |
 | `firmware/words_sv.h` | Genererad LED-tabell till firmware-patchen | — |
 
-Ingen extern elektronikbox behövs — **ESP32:n sitter i en ficka på bakplattans
-baksida** (skenor + ändstopp, USB nedåt mot kabelkanalen). Bakplattan har även
-**tratt-krok** (fångar väggskruven själv), **stödkuddar** (hänger plant), **genomföringshål** för
-LED-kablarna vid LED 0, och **piggslitsar**: tre piggar på skalets gallerväggar
-går ner i slitsarna så plattan självcentrerar — de fyra M3-skruvarna klämmer.
-Layout: `out/backplate_layout.svg`.
+Ingen extern elektronikbox behövs. Bakplattans baksida har en **ram runt hela
+kanten, 2 mm bred och 12,5 mm hög** — klockan hänger på den, och lådan den
+bildar är elektronikutrymmet. Ramen är 2 mm bred med flit: M3-hålen sitter
+4,3–7,7 mm in från kanten, så ett ~6 mm skruvhuvud når 3 mm in — en bredare ram
+och huvudet hade inte gått ner bredvid.
+
+I lådan finns **ESP32-bay** (skenor + ändstopp runt en 1,8 mm hög limplatta),
+**tratt-krok** som fångar väggskruven själv, **genomföringshål** för LED-kablarna
+vid LED 0, och **piggslitsar**: tre piggar på skalets gallerväggar går ner i
+slitsarna så plattan självcentrerar — de fyra M3-skruvarna klämmer. Nertill i
+ramen är en **13 mm öppning** för USB-C-kontakten (10,5 mm + marginal), full
+ramhöjd så kabeln läggs rakt i. Layout: `out/backplate_layout.svg`.
+
+Höjdbudgeten i lådan är knapp och värd att räkna på innan du printar:
+
+| Från plattan | Vad |
+|---|---|
+| 1,8 mm | limplattans topp |
+| 5,0 mm | kortets ovansida (vilar på metallburken/USB-kontakten) |
+| 3,4 mm | USB-C-uttagets mitt — därför klarar kontaktens gjutning plattan |
+| 6,6 mm | kortets undersida, dit skenorna (7,5 mm) håller det på plats |
+| ~12,6 mm | stiftlistens spetsar, om kortet har lödda listar |
+
+Ramen är 12,5 mm. Har ditt kort lödda stiftlistor som sticker ut 6 mm nålar de
+alltså precis i väggen — klipp dem korta, eller höj `RIM_H`.
+
+Skalet är i sin tur urfräst för kablaget — allt uppifrån, öppet mot plattan, så
+den färdiglödda plattan kan läggas rakt ner utan att något behöver träs igenom:
+
+| Urtag | Var | Mått | Till vad |
+|---|---|---|---|
+| Stripurtag | topp av **varje** kolumnvägg, en per rad | 11 × 2,2 mm | stripens PCB korsar väggen (LEDsen sitter i cellcentrum, PCB:n pluggar igen urtaget) |
+| Kabelslits | de **två yttre** kolumnväggarna, en per rad, båda sidor | 8 × 6 mm | serpentinens 3 ledare (5V/GND/DATA) ut i sidokanalen |
+| Matningsslits | vid **LED 0** | 10 × 8 mm | 5 ledare + krympslangsknölen, rakt mot genomföringshålet |
+
+Sidokanalen mellan cellgallret och ytterväggen är 16,2 mm bred och 9,5 mm djup
+hela vägen — där ligger looparna. Se `out/topshell_walls.svg`.
 
 ## Printa (Bambu Studio)
 
@@ -81,12 +113,16 @@ Layout: `out/backplate_layout.svg`.
    ett band = en rads fotavtryck, inget mätande behövs. **LED 0 (data in) =
    raden närmast genomföringshålet, börja vid hålet**; den raden går bort från
    hålet, serpentin vidare rad för rad.
-3. Löd 5V/GND/DIN mellan radsluten (looparna hamnar utanför gridfältet — de ryms
-   i kanalen mellan cellgallret och ytterväggen).
-4. Löd tre längre ledare på LED 0 och dra dem genom **genomföringshålet** strax
-   ovanför (i högerkanalen) → till **ESP32-fickan** på baksidan. 5V + GND till
+3. Löd 5V/GND/DIN mellan radsluten. Looparna hamnar utanför gridfältet: de går
+   ut genom **kabelslitsen** i den yttre kolumnväggen (8 × 6 mm, en per rad på
+   båda sidor) och ligger i sidokanalen mellan cellgallret och ytterväggen.
+4. Löd matningen på LED 0 och dra den genom **matningsslitsen** (10 × 8 mm, den
+   breda) och vidare ut genom **genomföringshålet** (12 × 10 mm) i plattan strax
+   bredvid → till **ESP32-fickan** på baksidan. Där ryms 5 ledare plus knölen
+   från krympslangen. 5V + GND till
    strömmen, DIN till GPIO enligt originalets wiring-guide (`docs/device_build.md`).
-   ESP32:n glider in i fickan med USB nedåt; en klick limpistol om den sitter löst.
+   ESP32:n läggs i bayen med **metallburken nedåt mot limplattan** och USB-C
+   nedåt; superlim på burken. Skenorna tar sidorna, ändstoppet toppen.
 5. **Stäng klockan:** lägg plattan på skalet — de tre **piggarna** (sitter
    fast på skalets gallerväggar, printas ihop med skalet) går ner i slitsarna
    (passar bara åt rätt håll) — och skruva **4× M3 självgängande** genom
@@ -96,8 +132,8 @@ Layout: `out/backplate_layout.svg`.
    > spricker mindre än runt i print. Alternativ: superlimma plattan mot
    > väggtopparna — men först när ALLT är testat (LEDs + firmware); en limmad
    > klocka går inte att öppna för service.
-   Strömsladden går från fickan (nere på baksidan) mellan kabelstöden och
-   rakt ut under klockans underkant — kortast möjliga, syns inte framifrån.
+   Strömsladden går från bayen mellan kabelstöden och ut genom ramens
+   **USB-öppning** under klockans underkant — kortast möjliga, syns inte framifrån.
 6. Häng upp: skruv/spik i väggen med huvudet ~3–4 mm ut. Håll klockan mot väggen ungefär rätt och dra nedåt — **tratt-kroken** fångar skruven, centrerar den själv och låser huvudet bakom läppen. Eller ställ den på bord.
 7. Firmware: se [`firmware/PATCH.md`](firmware/PATCH.md).
 
@@ -106,7 +142,8 @@ Layout: `out/backplate_layout.svg`.
 | Del | Spec |
 |---|---|
 | WS2812B-strip | **74 LEDs/m**, 2 m (110 LEDs + marginal), 5V, max 10 mm bred |
-| ESP32 | DevKit v1 (~28×52 mm — fickan är måttad för den) |
+| ESP32 | DevKit v1 (52 × 28,7 mm — bayen är måttad exakt för den) |
+| Superlim | fäster ESP32:ns metallburk mot limplattan |
 | Transparent PLA | till bokstäverna (AMS filament 2) |
 | Svart PLA | skal + bakplatta |
 | Ström | 5V 3A |

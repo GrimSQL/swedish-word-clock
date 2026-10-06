@@ -188,8 +188,45 @@ const WALL = 2.0;                          // cell + shell wall thickness
 const BOSS = 8, PILOT = 2.7;               // M3 self-tap bosses in shell corners
 const SCREW_HOLE = 3.4, SCREW_INSET = 6;   // back plate clearance holes
 const BACK_T = 3;                          // back plate thickness
-const CABLE_W = 10, CABLE_D = 5;           // cable notch in bottom shell wall (at plate side)
 const V_MARGIN = 0.8, H_MARGIN = 1.0;      // keep letters inside the 11.51mm cell opening
+
+// --- Cable routing through the shell -------------------------------------
+// The LED strips are stuck to the BACK PLATE and hang down into the cells, so
+// they cross every column wall. Everything below is cut from the wall TOP (the
+// plate side), never as a closed hole: a fully soldered plate can then be
+// lowered straight onto the shell instead of threading wires through it.
+//   STRIP_RELIEF  every column wall, where a strip crosses it. The LEDs sit at
+//                 cell centres (74/m pitch = cell pitch), so the diodes land in
+//                 the cells and only the thin 10mm PCB crosses a wall — 0.5mm
+//                 is enough, and the PCB then plugs the relief itself.
+//   WIRE_SLOT     the two OUTER column walls, one per row: the 3 serpentine
+//                 jumper wires (5V/GND/DATA) leaving each row end into the
+//                 16.2mm side channel between the grid and the perimeter wall.
+//   FEED_SLOT     the LED 0 corner only: 5 wires plus the heat-shrink bump,
+//                 on their way out through the pass-through hole in the plate.
+const STRIP_RELIEF_W = 11.0, STRIP_RELIEF_D = 0.5;
+const WIRE_SLOT_W = 8.0,  WIRE_SLOT_D = 6.0;
+const FEED_SLOT_W = 10.0, FEED_SLOT_D = 8.0;
+// Pass-through for the LED feed, in the back plate design frame. Sits centred
+// in the side channel, clear of both the column wall and the perimeter wall.
+const PASS_X = 4.12, PASS_Y = 145.12, PASS_W = 12, PASS_H = 10;
+
+// --- Back plate: perimeter rim + ESP32 box --------------------------------
+// The rim replaces the four corner standoff pads: the clock hangs on it and it
+// encloses the electronics. RIM_W is 2mm ON PURPOSE — the square M3 holes sit
+// 4.3-7.7mm in from the edge, so a ~6mm screw head reaches 3mm in; a wider rim
+// and the head would not clear it.
+const RIM_W = 2, RIM_H = 12.5;
+const USB_GAP = 13;                                    // 10.5mm USB-C plug + margin
+const USB0 = OUTER_W/2 - USB_GAP/2, USB1 = OUTER_W/2 + USB_GAP/2;
+// ESP32 DevKit v1 as measured: 52 × 28.7mm board, USB-C socket 2mm past the end.
+// It goes in metal-can DOWN and is superglued to the pad. The pad lifts the
+// board 1.8mm, which is what lets a USB-C plug's overmould clear the plate:
+// the socket mouth then sits 3.4mm up and the plug's underside 0.15mm up.
+const ESP_L = 52, ESP_W = 28.7, ESP_FIT = 0.6, ESP_PAD_H = 1.8;
+const BAY_W = ESP_W + ESP_FIT, BAY_L = ESP_L + ESP_FIT;
+const BAY_X = OUTER_W/2 - BAY_W/2, BAY_Y = 22;         // 20mm of clear run for the plug
+const RAIL_W = 2.5, RAIL_H = 7.5;                      // rails clear the board top (6.6mm)
 
 const FONT_PATH = process.argv[2] || path.join(process.env.WINDIR || 'C:\\Windows', 'Fonts', 'arial.ttf');
 
@@ -395,12 +432,40 @@ for (let row = 0; row < ROWS; row++) {
 const WZ = SLAB, WH = TOTAL_H - SLAB;
 const mbox = (x, y, z, w, d, h) => body.box(OUTER_W - x - w, y, z, w, d, h);
 mbox(0, 0, WZ, OUTER_W, WALL, WH);                             // top edge
-mbox(0, OUTER_H - WALL, WZ, 148, WALL, WH);                    // bottom edge, left of cable notch
-mbox(158, OUTER_H - WALL, WZ, OUTER_W - 158, WALL, WH);        // bottom edge, right of notch
-mbox(148, OUTER_H - WALL, WZ, 10, WALL, WH - CABLE_D);         // notch lintel (gap at plate side)
+mbox(0, OUTER_H - WALL, WZ, OUTER_W, WALL, WH);                // bottom edge, solid — the
+// original's cable notch is gone: it landed on the hanging TOP edge once the
+// electronics moved to the back, so it was only a dust trap and a light leak.
 mbox(0, WALL, WZ, WALL, OUTER_H - 2*WALL, WH);                 // left edge
 mbox(OUTER_W - WALL, WALL, WZ, WALL, OUTER_H - 2*WALL, WH);    // right edge
-for (let c = 0; c <= COLS; c++) mbox(GX + c*PITCH - WALL/2, GY - WALL/2, WZ, WALL, GRID_H + WALL, WH);
+// Column walls, emitted in segments so their tops can be cut open. The wide
+// feed slot goes on column wall 0 / row band 0 IN THE MBOX FRAME (X mirrored,
+// Y as printed) — that is the LED 0 cell: the E of ELVA seen from the front,
+// bottom RIGHT seen from behind, right opposite the plate's pass-through hole.
+const FEED_COL = 0, FEED_ROW = 0;
+const COL_CUTS = [];
+for (let c = 0; c <= COLS; c++) {
+  const outer = (c === 0 || c === COLS);
+  const cuts = [];
+  for (let r = 0; r < ROWS; r++) {
+    const yc = GY + (r + 0.5) * PITCH;
+    const feed = outer && c === FEED_COL && r === FEED_ROW;
+    const sw = feed ? FEED_SLOT_W : WIRE_SLOT_W, sd = feed ? FEED_SLOT_D : WIRE_SLOT_D;
+    if (outer) cuts.push([yc - STRIP_RELIEF_W/2, yc - sw/2, STRIP_RELIEF_D],
+                         [yc - sw/2, yc + sw/2, sd],
+                         [yc + sw/2, yc + STRIP_RELIEF_W/2, STRIP_RELIEF_D]);
+    else cuts.push([yc - STRIP_RELIEF_W/2, yc + STRIP_RELIEF_W/2, STRIP_RELIEF_D]);
+  }
+  COL_CUTS.push(cuts);
+  const wx = GX + c*PITCH - WALL/2;
+  let y = GY - WALL/2;
+  for (const [ya, yb, d] of cuts) {
+    if (ya - y > 1e-6) mbox(wx, y, WZ, WALL, ya - y, WH);          // full-height stretch
+    if (WH - d > 1e-6) mbox(wx, ya, WZ, WALL, yb - ya, WH - d);    // floor under the cut
+    y = yb;
+  }
+  mbox(wx, y, WZ, WALL, (GY + GRID_H + WALL/2) - y, WH);
+}
+// Row walls stay full height: the 10mm strips lie between them, not across them.
 for (let r = 0; r <= ROWS; r++) mbox(GX - WALL/2, GY + r*PITCH - WALL/2, WZ, GRID_W + WALL, WALL, WH);
 // bosses with pilot channels, pilot centres at (6,6) etc — matches back plate holes
 for (const [bx, by] of [[WALL, WALL], [OUTER_W-WALL-BOSS, WALL], [WALL, OUTER_H-WALL-BOSS], [OUTER_W-WALL-BOSS, OUTER_H-WALL-BOSS]]) {
@@ -438,8 +503,10 @@ const backMarkers = new STL('backplate_sv_markers');
 
   // LED wire pass-through: LEFT side channel (outside the grid field), next to
   // LED 0 — with 10 rows the serpentine's data-in sits bottom-LEFT in front
-  // view (row 9 is odd: index = x, so index 0 is at column 0).
-  const passHole = rectRing(8, 149, 6, 6);
+  // view (row 9 is odd: index = x, so index 0 is at column 0). 12×10 for the
+  // 5-wire feed plus its heat-shrink bump, lined up with the shell's wide
+  // FEED_SLOT on the other side of the column wall.
+  const passHole = rectRing(PASS_X, PASS_Y, PASS_W, PASS_H);
 
   // Peg slots — matched to the shell AS PRINTED. The shell's walls and pegs
   // are emitted through mbox (X mirror only), while plate holes go through
@@ -476,50 +543,59 @@ const backMarkers = new STL('backplate_sv_markers');
 
   // --- Back-side features (z above BACK_T), mirrored like everything else ---
   const pbox = (x, y, z, w, d, h) => back.box(OUTER_W - x - w, y, z, w, d, h);
-  const STANDOFF = 6;                    // wall standoff height (pads = tallest features)
+
+  // Perimeter rim — the clock hangs on this plus the hook face, and the box it
+  // makes is where the electronics live. Split around the USB opening at the
+  // hanging bottom; that opening is full height so the plug drops straight in
+  // and the print needs no bridge over it.
+  pbox(0, 0, BACK_T, USB0, RIM_W, RIM_H);
+  pbox(USB1, 0, BACK_T, OUTER_W - USB1, RIM_W, RIM_H);
+  pbox(0, OUTER_H - RIM_W, BACK_T, OUTER_W, RIM_W, RIM_H);
+  pbox(0, RIM_W, BACK_T, RIM_W, OUTER_H - 2*RIM_W, RIM_H);
+  pbox(OUTER_W - RIM_W, RIM_W, BACK_T, RIM_W, OUTER_H - 2*RIM_W, RIM_H);
 
   // ESP32 bay at the HUNG-BOTTOM of the back: pbox y is unflipped, so low
-  // design-y = low STL-y = the hanging bottom (keyhole lands at high STL-y).
-  // Board vertical, USB toward the bottom edge — the power cable drops
-  // straight out under the clock. End-stop at the top end, open downward.
-  const bayInnerW = 30, bayLen = 55, rail = 2.5, railH = 5;
-  const bx0 = kx - bayInnerW/2, bayY = 12;                                 // bay y 12..67
-  pbox(bx0 - rail, bayY, BACK_T, rail, bayLen, railH);
-  pbox(bx0 + bayInnerW, bayY, BACK_T, rail, bayLen, railH);
-  pbox(bx0 - rail, bayY + bayLen, BACK_T, bayInnerW + 2*rail, rail, railH); // end-stop (top end)
+  // design-y = low STL-y = the hanging bottom (the hook lands at high STL-y).
+  // Board vertical, metal can DOWN onto the pad, USB toward the bottom edge —
+  // the power cable drops straight out under the clock. The pad stops at the
+  // bay opening so the socket, which overhangs the board by 2mm, and the plug
+  // behind it hang free over the plate.
+  pbox(BAY_X, BAY_Y, BACK_T, BAY_W, BAY_L, ESP_PAD_H);                       // glue pad
+  pbox(BAY_X - RAIL_W, BAY_Y, BACK_T, RAIL_W, BAY_L, RAIL_H);                // side rails
+  pbox(BAY_X + BAY_W, BAY_Y, BACK_T, RAIL_W, BAY_L, RAIL_H);
+  pbox(BAY_X - RAIL_W, BAY_Y + BAY_L, BACK_T, BAY_W + 2*RAIL_W, RAIL_W, RAIL_H); // end-stop
 
-  // Short cable guide stubs from the bay opening to the bottom edge.
-  const chGap = 8, chRail = 2.5;
-  pbox(kx - chGap/2 - chRail, 2, BACK_T, chRail, bayY - 4, 4);
-  pbox(kx + chGap/2, 2, BACK_T, chRail, bayY - 4, 4);
-
-  // Corner standoff pads — the clock hangs flat on these + the hook face.
-  for (const [px, py] of [[11, 11], [OUTER_W-21, 11], [11, OUTER_H-21], [OUTER_W-21, OUTER_H-21]])
-    pbox(px, py, BACK_T, 10, 10, STANDOFF);
+  // Cable guides from the bay opening down to the USB opening in the rim.
+  pbox(USB0 - RAIL_W, RIM_W, BACK_T, RAIL_W, BAY_Y - RIM_W - 2, 4);
+  pbox(USB1, RIM_W, BACK_T, RAIL_W, BAY_Y - RIM_W - 2, 4);
 
   // --- Smart wall hook (replaces the flat keyhole): a hanger boss at the
   // hung TOP (pbox frame: high y = top) with a wide V-funnel opening
   // DOWNWARD. Hold the clock roughly right, slide down — the 24mm funnel
   // catches the screw/nail anywhere, self-centres the shaft into the slot,
   // and the head locks in the cavity behind the 1.4mm face lip.
-  // Flush with the pads (z 3..9) so the clock hangs flat.
+  // Flush with the rim so the clock hangs flat. The lip and the head cavity keep
+  // their proven thicknesses measured from the WALL face inward; raising the rim
+  // only makes the solid base underneath taller.
   // Wall screw: head <= 9mm, driven so the head sits ~3-4mm off the wall.
   {
     const x0 = kx - 18, x1 = kx + 18, y0 = 150, y1 = 172;
+    const LIP = 1.4, CAV = 3.2;
+    const zTop = BACK_T + RIM_H, zLip = zTop - LIP, zCav = zLip - CAV;
     // solid base layer
-    addBackPrism(back, rectRing(x0, y0, x1 - x0, y1 - y0), [], BACK_T, BACK_T + 1.4);
+    addBackPrism(back, rectRing(x0, y0, x1 - x0, y1 - y0), [], BACK_T, zCav);
     // head-cavity layer: block with a funnel notch in its bottom edge
     addBackPrism(back, [
       [x0, y0], [kx - 13, y0], [kx - 5.5, 160], [kx - 5.5, 166.5],
       [kx + 5.5, 166.5], [kx + 5.5, 160], [kx + 13, y0], [x1, y0],
       [x1, y1], [x0, y1],
-    ], [], BACK_T + 1.4, BACK_T + 4.6);
+    ], [], zCav, zLip);
     // face layer: narrower funnel + slot — the lip that retains the screw head
     addBackPrism(back, [
       [x0, y0], [kx - 12, y0], [kx - 2.3, 161], [kx - 2.3, 165.5],
       [kx + 2.3, 165.5], [kx + 2.3, 161], [kx + 12, y0], [x1, y0],
       [x1, y1], [x0, y1],
-    ], [], BACK_T + 4.6, BACK_T + STANDOFF);
+    ], [], zLip, zTop);
   }
 }
 
@@ -574,9 +650,9 @@ fs.writeFileSync(path.join(outDir, 'preview_slicer_view.svg'),
     sv += R(x - 1.7, y - 1.7, 3.4, 3.4, '#111');
   for (const [px, py, w, d] of PEGS)
     sv += R(px - 0.3, (OUTER_H - py - d) - 0.3, w + 0.6, d + 0.6, '#c96');
-  sv += T(58.6, 16, 'piggslits (ensam)', 4);
-  sv += T(152, 152, '← piggslitsar (par)', 3.5);
-  sv += R(8, 149, 6, 6, '#111') + T(146, 154.5, 'LED-kablar (LED 0) →', 3.5);
+  sv += T(143.5, 15, '⭣ piggslits (ensam)', 3.5);
+  sv += T(68.6, 165, '⭡ piggslitsar (par)', 3.5);
+  sv += R(PASS_X, PASS_Y, PASS_W, PASS_H, '#111') + T(152, 150, 'LED-kablar (LED 0) →', 3.5);
   // back-side features
   sv += Rp(kx - 18, 150, 36, 22, '#555');
   {
@@ -585,13 +661,66 @@ fs.writeFileSync(path.join(outDir, 'preview_slicer_view.svg'),
     sv += `  <polygon points="${p}" fill="#111"/>\n`;
   }
   sv += T(kx, 36, 'KROK — tratten fångar skruven, dra nedåt', 4);
-  for (const [px, py] of [[11, 11], [OUTER_W-21, 11], [11, OUTER_H-21], [OUTER_W-21, OUTER_H-21]])
-    sv += Rp(px, py, 10, 10, '#444');
-  sv += Rp(kx - 17.5, 12, 35, 57.5, '#555') + Rp(kx - 15, 12, 30, 55, '#333');
-  sv += T(kx, 136, 'ESP32') + T(kx, 144, '(USB nedåt)', 3.5);
-  sv += Rp(kx - 6.5, 2, 2.5, 8, '#555') + Rp(kx + 4, 2, 2.5, 8, '#555') + T(kx + 26, 175, 'sladd ⭣', 4);
+  // perimeter rim (2mm wide so the M3 screw heads clear it), split at the USB opening
+  sv += Rp(0, 0, USB0, RIM_W, '#666') + Rp(USB1, 0, OUTER_W - USB1, RIM_W, '#666');
+  sv += Rp(0, OUTER_H - RIM_W, OUTER_W, RIM_W, '#666');
+  sv += Rp(0, RIM_W, RIM_W, OUTER_H - 2*RIM_W, '#666') + Rp(OUTER_W - RIM_W, RIM_W, RIM_W, OUTER_H - 2*RIM_W, '#666');
+  sv += T(kx, 46, `RAM ${RIM_W}mm bred × ${RIM_H}mm hög — klockan hänger på den`, 4);
+  // ESP32 bay: rails + end-stop around the raised glue pad
+  sv += Rp(BAY_X - RAIL_W, BAY_Y, BAY_W + 2*RAIL_W, BAY_L + RAIL_W, '#555');
+  sv += Rp(BAY_X, BAY_Y, BAY_W, BAY_L, '#3f3f3f');
+  sv += T(kx, 118, 'ESP32 — metallburken NER', 4) + T(kx, 126, `limplatta ${BAY_W}×${BAY_L}mm, ${ESP_PAD_H}mm hög`, 3.5);
+  sv += T(kx, 134, '(USB-C nedåt)', 3.5);
+  // cable guides down to the USB opening
+  sv += Rp(USB0 - RAIL_W, RIM_W, RAIL_W, BAY_Y - RIM_W - 2, '#555') + Rp(USB1, RIM_W, RAIL_W, BAY_Y - RIM_W - 2, '#555');
+  sv += T(kx + 30, 172, `⭣ USB-C, ${USB_GAP}mm öppning`, 4);
   sv += '</svg>\n';
   fs.writeFileSync(path.join(outDir, 'backplate_layout.svg'), sv, 'utf-8');
+}
+
+// topshell_walls.svg — the SHELL seen from BEHIND, through its open back, in
+// hanging orientation. Same view and handedness as backplate_layout.svg, so
+// the two drawings can be laid side by side feature for feature: the feed slot
+// here must point straight at the pass-through hole there.
+{
+  // arguments are STL coords, y counted upward like on the printed part
+  const RS = (x, y, w, h, fill) =>
+    `  <rect x="${x.toFixed(2)}" y="${(OUTER_H - y - h).toFixed(2)}" width="${w.toFixed(2)}" height="${h.toFixed(2)}" fill="${fill}"/>\n`;
+  const RM = (x, y, w, d, fill) => RS(OUTER_W - x - w, y, w, d, fill);   // mbox design coords
+  const T = (x, y, t, sz = 4, a = 'middle', fill = '#ddd') =>
+    `  <text x="${x.toFixed(2)}" y="${(OUTER_H - y).toFixed(2)}" font-family="sans-serif" font-size="${sz}" fill="${fill}" text-anchor="${a}">${t}</text>\n`;
+  const cutFill = d => d >= FEED_SLOT_D ? '#e05a3a' : d >= WIRE_SLOT_D ? '#e8a13a' : '#3f4a55';
+
+  let sv = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${OUTER_W}mm" height="${OUTER_H}mm" viewBox="-2 -2 ${OUTER_W+4} ${OUTER_H+4}">\n`;
+  sv += `  <rect x="0" y="0" width="${OUTER_W}" height="${OUTER_H}" fill="#1b1b1b" stroke="#666" stroke-width="0.5"/>\n`;
+  // where the LED strips hang down from the plate into the cells
+  for (let r = 0; r < ROWS; r++) sv += RM(GX, GY + (r + 0.5)*PITCH - 5, GRID_W, 10, '#2b2721');
+  // perimeter walls + row walls (full height everywhere)
+  sv += RM(0, 0, OUTER_W, WALL, '#8a8a8a') + RM(0, OUTER_H - WALL, OUTER_W, WALL, '#8a8a8a');
+  sv += RM(0, WALL, WALL, OUTER_H - 2*WALL, '#8a8a8a') + RM(OUTER_W - WALL, WALL, WALL, OUTER_H - 2*WALL, '#8a8a8a');
+  for (let r = 0; r <= ROWS; r++) sv += RM(GX - WALL/2, GY + r*PITCH - WALL/2, GRID_W + WALL, WALL, '#8a8a8a');
+  // column walls + every top-open cut in them
+  for (let c = 0; c <= COLS; c++) {
+    const wx = GX + c*PITCH - WALL/2;
+    sv += RM(wx, GY - WALL/2, WALL, GRID_H + WALL, '#8a8a8a');
+    for (const [ya, yb, d] of COL_CUTS[c]) sv += RM(wx, ya, WALL, yb - ya, cutFill(d));
+  }
+  // screw bosses + alignment pegs
+  for (const [bx, by] of [[WALL, WALL], [OUTER_W-WALL-BOSS, WALL], [WALL, OUTER_H-WALL-BOSS], [OUTER_W-WALL-BOSS, OUTER_H-WALL-BOSS]])
+    sv += RM(bx, by, BOSS, BOSS, '#9a9a9a') + RM(bx + BOSS/2 - PILOT/2, by + BOSS/2 - PILOT/2, PILOT, PILOT, '#111');
+  for (const [px, py, w, d] of PEGS) sv += RM(px, py, w, d, '#69c');
+  // the back plate's pass-through, projected onto this view
+  sv += `  <rect x="${(OUTER_W - PASS_X - PASS_W).toFixed(2)}" y="${PASS_Y.toFixed(2)}" width="${PASS_W}" height="${PASS_H}" fill="none" stroke="#e05a3a" stroke-width="0.6" stroke-dasharray="2 1.5"/>\n`;
+  // labels
+  sv += T(OUTER_W/2, OUTER_H - 7, 'TOPSHELL BAKIFRÅN — hängande läge (jämför med backplate_layout.svg)', 4.5);
+  sv += T(160, 40, '5 kablar + krympslang, ut genom plattan ⟶', 3.8, 'end', '#e05a3a');
+  sv += T(24, GY + 5.5*PITCH + 2, '⟵ 3 kablar per radslut — slits i varje rad, båda sidor', 3.8, 'start', '#e8a13a');
+  sv += T(OUTER_W/2, GY + GRID_H + 5, 'grunt urtag i varje kolumnvägg = plats för stripens PCB', 3.8, 'middle', '#8fa8bd');
+  sv += RS(6, 10, 5, 3, '#e05a3a') + T(13, 10.5, 'matningsslits ' + FEED_SLOT_W + '×' + FEED_SLOT_D + 'mm', 3.4, 'start');
+  sv += RS(72, 10, 5, 3, '#e8a13a') + T(79, 10.5, 'kabelslits ' + WIRE_SLOT_W + '×' + WIRE_SLOT_D + 'mm', 3.4, 'start');
+  sv += RS(128, 10, 5, 3, '#3f4a55') + T(135, 10.5, 'stripurtag ' + STRIP_RELIEF_W + '×' + STRIP_RELIEF_D + 'mm', 3.4, 'start');
+  sv += '</svg>\n';
+  fs.writeFileSync(path.join(outDir, 'topshell_walls.svg'), sv, 'utf-8');
 }
 
 const bb = body.bbox(), lb = letters.bbox(), kb = back.bbox();
@@ -603,6 +732,16 @@ console.log(`topshell body    : ${body.tris.length} tris  ${bb.map(x=>x.toFixed(
 console.log(`topshell letters : ${letters.tris.length} tris  ${lb.map(x=>x.toFixed(1)).join(' × ')} mm  (TRANSPARENT filament)`);
 console.log(`backplate        : ${back.tris.length} tris  ${kb.map(x=>x.toFixed(1)).join(' × ')} mm`);
 console.log(`strip markers    : ${backMarkers.tris.length} tris  (första 0,2mm av strip-sidan — kontrastfilament)`);
+{
+  const flat = COL_CUTS.flat();
+  const n = d => flat.filter(c => Math.abs(c[2] - d) < 1e-9).length;
+  console.log(`\nKabeldragning i skalet (allt urfräst uppifrån, öppet mot bakplattan):`);
+  console.log(`  stripurtag     : ${n(STRIP_RELIEF_D)} st  ${STRIP_RELIEF_W}mm breda × ${STRIP_RELIEF_D}mm djupa — stripens PCB korsar varje kolumnvägg`);
+  console.log(`  kabelslitsar   : ${n(WIRE_SLOT_D)} st  ${WIRE_SLOT_W}×${WIRE_SLOT_D}mm — 3 kablar per radslut, varje rad, båda sidor`);
+  console.log(`  matningsslits  : ${n(FEED_SLOT_D)} st  ${FEED_SLOT_W}×${FEED_SLOT_D}mm vid LED 0 — 5 kablar + krympslangsknöl`);
+  console.log(`  genomföring    : ${PASS_W}×${PASS_H}mm i bakplattan (var 6×6), centrerad i sidokanalen`);
+  console.log(`  sidokanal      : ${(GX - WALL/2 - WALL).toFixed(1)}mm bred × ${(TOTAL_H - SLAB).toFixed(1)}mm djup längs bägge sidorna`);
+}
 console.log(`\nLED table (serpentine, matches original firmware convention):`);
 for (const [name, [lo, hi]] of Object.entries(LED_TABLE)) console.log(`  ${name.padEnd(8)} ${lo}-${hi}`);
 console.log(`\nOutput -> out/  +  firmware/words_sv.h`);
